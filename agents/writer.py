@@ -53,7 +53,8 @@ def generate(provider: str, model: str, system: str, prompt: str,
                   "messages": [{"role": "user", "content": prompt}]},
             timeout=TIMEOUT,
         )
-        r.raise_for_status()
+        if r.status_code >= 400:
+            raise RuntimeError(f"{provider} API 오류 {r.status_code}: {r.text[:500]}")
         d = r.json()
         text = "".join(b.get("text", "") for b in d.get("content", []))
         u = d.get("usage", {})
@@ -69,7 +70,8 @@ def generate(provider: str, model: str, system: str, prompt: str,
                                {"role": "user", "content": prompt}]},
             timeout=TIMEOUT,
         )
-        r.raise_for_status()
+        if r.status_code >= 400:
+            raise RuntimeError(f"{provider} API 오류 {r.status_code}: {r.text[:500]}")
         d = r.json()
         u = d.get("usage", {})
         return {"text": d["choices"][0]["message"]["content"],
@@ -78,6 +80,34 @@ def generate(provider: str, model: str, system: str, prompt: str,
                 "model": d.get("model", model)}
 
     if provider == "gemini":
+        # Watchdog v0: 모델 은퇴/차단(404, 429 limit:0) 시 예비 후보로 자동 재시도
+        fallbacks = [model, "gemini-3-flash-preview", "gemini-flash-latest",
+                     "gemini-flash-lite-latest", "gemini-3.1-flash-lite"]
+        last_err = None
+        for m in dict.fromkeys(fallbacks):
+            r = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent",
+                headers={"x-goog-api-key": key},
+                json={"system_instruction": {"parts": [{"text": system}]},
+                      "contents": [{"parts": [{"text": prompt}]}]},
+                timeout=TIMEOUT,
+            )
+            if r.status_code == 200:
+                if m != model:
+                    print(f"⚠ Watchdog: {model} 사용 불가 → {m}(으)로 자동 전환됨. "
+                          f"routing_table.json 갱신을 권장합니다.")
+                d = r.json()
+                text = "".join(pt.get("text", "")
+                               for pt in d["candidates"][0]["content"].get("parts", []))
+                u = d.get("usageMetadata", {})
+                return {"text": text, "input_tokens": u.get("promptTokenCount", 0),
+                        "output_tokens": u.get("candidatesTokenCount", 0), "model": m}
+            last_err = f"{r.status_code}: {r.text[:300]}"
+            if r.status_code not in (404, 429, 503):
+                break
+        raise RuntimeError(f"gemini API 오류 (모든 후보 실패) {last_err}")
+
+    if provider == "_gemini_old_disabled":
         r = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
             headers={"x-goog-api-key": key},
@@ -85,7 +115,8 @@ def generate(provider: str, model: str, system: str, prompt: str,
                   "contents": [{"parts": [{"text": prompt}]}]},
             timeout=TIMEOUT,
         )
-        r.raise_for_status()
+        if r.status_code >= 400:
+            raise RuntimeError(f"{provider} API 오류 {r.status_code}: {r.text[:500]}")
         d = r.json()
         text = "".join(p.get("text", "")
                        for p in d["candidates"][0]["content"].get("parts", []))

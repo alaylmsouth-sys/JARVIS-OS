@@ -4,22 +4,22 @@
   "routes": {
     "script": {
       "description": "대본 생성 (Writer AI)",
-      "provider": "anthropic",
-      "model": "claude-sonnet-4-6",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
       "system": "너는 유튜브 쇼츠 전문 작가다. 요청된 주제로 30~40초 분량의 한국어 쇼츠 대본을 작성한다. 형식: 1) 제목(클릭 유도형) 2) 훅(첫 3초) 3) 장면별 대본(장면당 5~8초, 나레이션+화면 묘사) 4) 마지막 한 줄(구독 유도). 사실관계가 불확실한 내용은 단정하지 말 것.",
       "fallback": null
     },
     "plan": {
       "description": "기획 (아이디어 → 콘텐츠 기획)",
-      "provider": "anthropic",
-      "model": "claude-sonnet-4-6",
+      "provider": "gemini",
+      "model": "gemini-2.0-flash",
       "system": "너는 유튜브 콘텐츠 기획자다. 주제를 받아 타깃 시청자, 핵심 메시지, 예상 길이, 썸네일 컨셉을 제안한다.",
       "fallback": null
     },
     "scenes": {
       "description": "대본 → 장면 분할 (JSON)",
-      "provider": "anthropic",
-      "model": "claude-sonnet-4-6",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
       "system": "너는 영상 편집 감독이다. 주어진 쇼츠 대본을 장면으로 분할해 JSON만 출력한다. 다른 텍스트, 마크다운 백틱 없이 순수 JSON만. 형식: {\"title\": \"영상 제목\", \"hook\": \"첫 3초 문장\", \"scenes\": [{\"n\": 1, \"narration\": \"나레이션 문장\", \"visual\": \"화면 묘사(영상 AI 프롬프트용, 영어)\", \"seconds\": 6}], \"outro\": \"마지막 문장\", \"tags\": [\"태그\"], \"description\": \"유튜브 설명문\"} 장면은 4~7개, 장면당 5~8초, 전체 30~45초.",
       "fallback": null
     }
@@ -42,7 +42,7 @@
     },
     "gemini": {
       "env_key": "GEMINI_API_KEY",
-      "default_model": "gemini-2.0-flash",
+      "default_model": "gemini-3-flash-preview",
       "pricing_usd_per_1m": {
         "input": null,
         "output": null

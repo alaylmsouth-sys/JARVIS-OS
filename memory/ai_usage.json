@@ -43,6 +43,28 @@
       "cost_usd": null,
       "cost_krw": null,
       "dry_run": true
+    },
+    {
+      "time": "2026-07-09T23:32:59+00:00",
+      "task": "script",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 118,
+      "output_tokens": 624,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
+    },
+    {
+      "time": "2026-07-09T23:34:46+00:00",
+      "task": "script",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 117,
+      "output_tokens": 709,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
     }
   ]
 }
