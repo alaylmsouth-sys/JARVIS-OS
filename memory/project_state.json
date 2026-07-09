@@ -1,0 +1,121 @@
+{
+  "project": "JARVIS OS",
+  "version": "0.1.0",
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "1단계 · JARVIS Dashboard",
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "프로젝트 구조 생성 (JARVIS-OS/)",
+          "done": true
+        },
+        {
+          "id": "t2",
+          "title": "AI Project Manager (진행률/우선순위)",
+          "done": true
+        },
+        {
+          "id": "t3",
+          "title": "대시보드 UI (Scoreboard, 승인 대기)",
+          "done": true
+        },
+        {
+          "id": "t4",
+          "title": "설계 문서 docs/ 정리",
+          "done": true
+        },
+        {
+          "id": "t5",
+          "title": "GitHub 저장소 생성 및 첫 커밋",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "2단계 · AI Router",
+      "tasks": [
+        {
+          "id": "t6",
+          "title": "AI Router 설계 (작업 → AI 매핑 규칙)",
+          "done": true
+        },
+        {
+          "id": "t7",
+          "title": "첫 번째 AI 연결 (대본 생성)",
+          "done": false
+        },
+        {
+          "id": "t8",
+          "title": "라우팅 로그 및 비용 기록",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "3단계 · 영상 자동 제작",
+      "tasks": [
+        {
+          "id": "t9",
+          "title": "대본 → 장면 분할 파이프라인",
+          "done": true
+        },
+        {
+          "id": "t10",
+          "title": "영상 생성 AI 연동",
+          "done": false
+        },
+        {
+          "id": "t11",
+          "title": "음성 생성 + 자막",
+          "done": false
+        },
+        {
+          "id": "t12",
+          "title": "Quality Inspector (품질 점수)",
+          "done": true
+        },
+        {
+          "id": "t13",
+          "title": "승인 화면 → 유튜브 업로드",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "4단계 · Finance Center",
+      "tasks": [
+        {
+          "id": "t14",
+          "title": "AI 사용료 자동 집계",
+          "done": false
+        },
+        {
+          "id": "t15",
+          "title": "수익/비용 관리",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "5단계 · 투자센터",
+      "tasks": [
+        {
+          "id": "t16",
+          "title": "보유 종목 관리",
+          "done": false
+        },
+        {
+          "id": "t17",
+          "title": "뉴스/일정 분석",
+          "done": false
+        }
+      ]
+    }
+  ]
+}

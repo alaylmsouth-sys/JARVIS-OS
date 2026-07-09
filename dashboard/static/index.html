@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JARVIS OS · 지휘실</title>
+<style>
+  :root{
+    --bg:#101625; --panel:#171f31; --panel-2:#1d2740; --line:#28324d;
+    --ink:#e8edf5; --muted:#8a94a8; --arc:#5bc8f5; --amber:#f5b14c;
+    --ok:#5fd58f; --danger:#f07a6a; --stamp:#e0523f;
+    --mono:"IBM Plex Mono","SF Mono",Consolas,monospace;
+    --sans:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;padding:24px 20px 64px;max-width:1080px;margin:0 auto}
+  a{color:var(--arc)}
+
+  header{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px;flex-wrap:wrap}
+  header h1{font-size:22px;letter-spacing:.06em;font-weight:800}
+  header h1 span{color:var(--arc)}
+  header .ver{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  header .clock{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+  section h2{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--muted);margin-bottom:14px;text-transform:uppercase}
+  .full{grid-column:1/-1}
+
+  /* ── 진행률 HUD (그들의 ██░░ 표기를 그대로 시각화) ── */
+  .hud{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .segbar{display:flex;gap:4px;flex:1;min-width:220px}
+  .segbar i{flex:1;height:26px;border-radius:3px;background:var(--panel-2);border:1px solid var(--line)}
+  .segbar i.on{background:linear-gradient(180deg,#7fd6f8,#3aa8dc);border-color:transparent;box-shadow:0 0 10px rgba(91,200,245,.35)}
+  .pct{font-family:var(--mono);font-size:34px;font-weight:700;color:var(--arc)}
+  .pct small{font-size:13px;color:var(--muted);font-weight:400;margin-left:6px}
+
+  .priority{margin-top:16px;background:var(--panel-2);border-left:3px solid var(--arc);border-radius:6px;padding:12px 14px;font-size:15px}
+  .priority b{color:var(--arc)}
+
+  /* ── 단계별 작업 ── */
+  .phase{margin-bottom:14px}
+  .phase h3{font-size:14px;font-weight:700;margin-bottom:6px;display:flex;justify-content:space-between}
+  .phase h3 em{font-family:var(--mono);font-style:normal;font-size:12px;color:var(--muted)}
+  .task{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:14px}
+  .task:hover{background:var(--panel-2)}
+  .task .box{width:16px;height:16px;border:1.5px solid var(--muted);border-radius:4px;flex:none;display:grid;place-items:center;font-size:11px;color:var(--bg)}
+  .task.done .box{background:var(--ok);border-color:var(--ok)}
+  .task.done .box::after{content:"✓";font-weight:900}
+  .task.done span{color:var(--muted);text-decoration:line-through}
+
+  /* ── Scoreboard ── */
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{font-size:11px;letter-spacing:.1em;color:var(--muted);text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);font-weight:600}
+  td{padding:8px 6px;border-bottom:1px solid var(--line)}
+  td.score{font-family:var(--mono);color:var(--arc)}
+  td.status{color:var(--muted);font-size:12.5px}
+  .foot{margin-top:10px;font-size:12px;color:var(--muted)}
+
+  /* ── CEO 승인 큐 (시그니처: 결재 도장) ── */
+  .card{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:12px}
+  .card .row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+  .card h3{font-size:16px;margin-bottom:4px}
+  .meta{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .tags{margin-top:6px;font-size:12px;color:var(--arc)}
+  .qgrid{display:flex;gap:14px;margin-top:12px;flex-wrap:wrap}
+  .q{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;text-align:center;min-width:70px}
+  .q b{display:block;font-family:var(--mono);font-size:18px;color:var(--arc)}
+  .q span{font-size:11px;color:var(--muted)}
+  .actions{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  button{font-family:var(--sans);cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 16px;font-size:14px}
+  button:hover{border-color:var(--muted)}
+  button:focus-visible{outline:2px solid var(--arc);outline-offset:2px}
+  .stamp{width:74px;height:74px;border-radius:50%;border:3px solid var(--stamp);color:var(--stamp);background:transparent;font-weight:800;font-size:15px;letter-spacing:.15em;transform:rotate(-8deg);transition:transform .15s}
+  .stamp:hover{transform:rotate(-8deg) scale(1.06);background:rgba(224,82,63,.08);border-color:var(--stamp)}
+  .stamped{color:var(--stamp);font-weight:800;font-size:15px;border:2.5px solid var(--stamp);border-radius:50%;width:74px;height:74px;display:grid;place-items:center;transform:rotate(-8deg);letter-spacing:.15em}
+  .badge{font-size:12px;padding:2px 8px;border-radius:20px;border:1px solid var(--line);color:var(--muted)}
+  .badge.rejected{color:var(--danger);border-color:var(--danger)}
+  .badge.retry{color:var(--amber);border-color:var(--amber)}
+  .empty{color:var(--muted);font-size:14px;padding:8px 2px}
+  .warn{font-size:12px;color:var(--amber);margin-top:8px}
+
+  @media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>JARVIS <span>OS</span></h1>
+  <div class="ver" id="ver">v—</div>
+  <div class="clock" id="clock"></div>
+</header>
+
+<div class="grid">
+
+  <section class="full">
+    <h2>AI Project Manager · 전체 진행률</h2>
+    <div class="hud">
+      <div class="segbar" id="segbar"></div>
+      <div class="pct"><span id="pct">0</span>%<small id="count"></small></div>
+    </div>
+    <div class="priority" id="priority">불러오는 중…</div>
+  </section>
+
+  <section>
+    <h2>다음 작업</h2>
+    <div id="phases"></div>
+  </section>
+
+  <section>
+    <h2>AI Scoreboard · 직원 성적표</h2>
+    <table>
+      <thead><tr><th>AI 직원</th><th>담당</th><th>점수</th><th>상태</th></tr></thead>
+      <tbody id="scoreboard"></tbody>
+    </table>
+    <div class="foot" id="scorenote"></div>
+  </section>
+
+  <section class="full">
+    <h2>AI Router · 호출 기록과 사용료</h2>
+    <div class="hud" style="margin-bottom:12px">
+      <div class="q"><b id="rc-total">0</b><span>총 호출</span></div>
+      <div class="q"><b id="rc-cost">0원</b><span>누적 비용</span></div>
+      <div class="q"><b id="rc-unpriced">0</b><span>미산정 호출</span></div>
+    </div>
+    <table>
+      <thead><tr><th>시각</th><th>작업</th><th>AI</th><th>토큰(입력/출력)</th><th>비용</th></tr></thead>
+      <tbody id="routerlog"></tbody>
+    </table>
+    <div class="foot">비용이 "미산정"이면 memory/routing_table.json에 가격을 입력하세요. 이 기록은 재무센터(4단계)의 AI 사용료로 연결됩니다.</div>
+  </section>
+
+  <section class="full">
+    <h2>CEO 결재함 · 승인 대기</h2>
+    <div id="approvals"></div>
+    <div class="warn">원칙: JARVIS는 절대 혼자 업로드하지 않습니다. 이 결재함에서 승인된 항목만 업로드됩니다.</div>
+  </section>
+
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+
+function tickClock(){
+  $("#clock").textContent = new Date().toLocaleString("ko-KR",{dateStyle:"medium",timeStyle:"medium"});
+}
+setInterval(tickClock,1000); tickClock();
+
+async function loadProject(){
+  const r = await fetch("/api/project"); const d = await r.json();
+  const p = d.progress;
+  $("#ver").textContent = "v"+p.version;
+  $("#pct").textContent = p.percent;
+  $("#count").textContent = `(${p.done}/${p.total} 작업)`;
+  const seg = $("#segbar"); seg.innerHTML="";
+  const on = Math.round(p.percent/10);
+  for(let i=0;i<10;i++){const b=document.createElement("i"); if(i<on)b.className="on"; seg.appendChild(b);}
+  $("#priority").innerHTML = "🎯 " + d.priority.message.replace(/「(.+?)」/,"「<b>$1</b>」");
+
+  const wrap = $("#phases"); wrap.innerHTML="";
+  for(const ph of p.phases){
+    const div=document.createElement("div"); div.className="phase";
+    div.innerHTML=`<h3>${ph.name}<em>${ph.done}/${ph.total}</em></h3>`;
+    for(const t of ph.tasks){
+      const row=document.createElement("div");
+      row.className="task"+(t.done?" done":"");
+      row.innerHTML=`<div class="box"></div><span>${t.title}</span>`;
+      row.onclick=async()=>{await fetch(`/api/tasks/${t.id}/toggle`,{method:"POST"}); loadProject();};
+      div.appendChild(row);
+    }
+    wrap.appendChild(div);
+  }
+}
+
+async function loadScoreboard(){
+  const r = await fetch("/api/scoreboard"); const d = await r.json();
+  $("#scoreboard").innerHTML = d.agents.map(a=>
+    `<tr><td>${a.name}</td><td>${a.role}</td>
+     <td class="score">${a.score ?? "—"}</td>
+     <td class="status">${a.status}</td></tr>`).join("");
+  $("#scorenote").textContent = d.note || "";
+}
+
+async function loadApprovals(){
+  const r = await fetch("/api/approvals"); const d = await r.json();
+  const wrap = $("#approvals");
+  const pending = d.items;
+  if(!pending.length){ wrap.innerHTML = `<div class="empty">결재할 항목이 없습니다. 영상 파이프라인이 연결되면 여기에 쌓입니다.</div>`; return; }
+  wrap.innerHTML = "";
+  for(const it of pending){
+    const q = Object.entries(it.quality||{}).map(([k,v])=>`<div class="q"><b>${v}</b><span>${k}</span></div>`).join("");
+    const warns = (it.warnings||[]).map(w=>`<div class="warn">⚠ ${w}</div>`).join("");
+    const media = it.files ? `
+      <div style="display:flex;gap:14px;margin-top:12px;flex-wrap:wrap;align-items:flex-start">
+        <video controls preload="metadata" src="${it.files.video}" style="width:180px;border-radius:8px;border:1px solid var(--line)"></video>
+        <img src="${it.files.thumbnail}" alt="썸네일" style="width:180px;border-radius:8px;border:1px solid var(--line)">
+      </div>` : "";
+    const card = document.createElement("div"); card.className="card";
+    let right;
+    if(it.status==="pending"){
+      right = `<button class="stamp" data-id="${it.id}" data-act="approve">승 인</button>`;
+    } else if(it.status==="approved"){
+      right = `<div class="stamped">승 인</div>`;
+    } else {
+      right = `<span class="badge ${it.status}">${it.status==="rejected"?"반려":"재생성 요청"}</span>`;
+    }
+    card.innerHTML = `
+      <div class="row">
+        <div>
+          <h3>${it.title}</h3>
+          <div class="meta">길이 ${it.length} · ${it.created} · ${it.type}</div>
+          <div class="tags">${(it.tags||[]).map(t=>"#"+t).join(" ")}</div>
+        </div>
+        <div>${right}</div>
+      </div>
+      <div class="qgrid">${q}</div>
+      ${media}
+      ${warns}
+      <div class="meta" style="margin-top:8px">AI 판단: ${it.recommendation||"—"}</div>
+      ${it.status==="pending"?`
+      <div class="actions">
+        <button data-id="${it.id}" data-act="retry">🔄 다시 만들기</button>
+        <button data-id="${it.id}" data-act="reject">반려</button>
+      </div>`:""}`;
+    wrap.appendChild(card);
+  }
+  wrap.querySelectorAll("button[data-act]").forEach(b=>{
+    b.onclick=async()=>{
+      await fetch(`/api/approvals/${b.dataset.id}/${b.dataset.act}`,{method:"POST"});
+      loadApprovals();
+    };
+  });
+}
+
+async function loadRouter(){
+  const r = await fetch("/api/router/usage"); const d = await r.json();
+  $("#rc-total").textContent = d.total_calls;
+  $("#rc-cost").textContent = d.total_cost_krw.toLocaleString("ko-KR")+"원";
+  $("#rc-unpriced").textContent = d.unpriced_calls;
+  $("#routerlog").innerHTML = d.recent.length ? d.recent.map(c=>{
+    const cost = c.cost_krw!=null ? c.cost_krw+"원" : (c.dry_run?"테스트":"미산정");
+    return `<tr><td class="status">${c.time.slice(5,16).replace("T"," ")}</td>
+      <td>${c.task}${c.dry_run?" <span class='badge'>dry</span>":""}</td>
+      <td class="status">${c.provider}/${c.model}</td>
+      <td class="score">${c.input_tokens}/${c.output_tokens}</td>
+      <td class="score">${cost}</td></tr>`;
+  }).join("") : `<tr><td colspan="5" class="empty">아직 호출 기록이 없습니다. 터미널에서 python -m router.cli "주제" --dry-run 을 실행해 보세요.</td></tr>`;
+}
+
+loadProject(); loadScoreboard(); loadApprovals(); loadRouter();
+</script>
+</body>
+</html>

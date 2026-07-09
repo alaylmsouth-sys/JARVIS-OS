@@ -1,0 +1,6 @@
+[DRY-RUN] provider=anthropic, model=claude-sonnet-4-6
+제목: (예시) AI가 세상을 바꾸는 3가지 방법… 에 대한 쇼츠
+훅: 이 사실, 알고 계셨나요?
+장면1: …
+장면2: …
+마무리: 더 알고 싶다면 구독!

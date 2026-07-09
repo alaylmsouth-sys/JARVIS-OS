@@ -1,0 +1,92 @@
+{
+  "note": "작업 유형별로 어떤 AI를 쓸지 정하는 테이블. provider를 바꾸면 즉시 교체됩니다.",
+  "pricing_note": "가격(1M 토큰당 USD)은 수시로 변경되므로 직접 확인 후 입력하세요. null이면 토큰만 기록하고 비용은 '미산정'으로 표시합니다. 확인처: https://docs.claude.com (Anthropic) / platform.openai.com/pricing (OpenAI) / ai.google.dev/pricing (Gemini)",
+  "routes": {
+    "script": {
+      "description": "대본 생성 (Writer AI)",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "system": "너는 유튜브 쇼츠 전문 작가다. 요청된 주제로 30~40초 분량의 한국어 쇼츠 대본을 작성한다. 형식: 1) 제목(클릭 유도형) 2) 훅(첫 3초) 3) 장면별 대본(장면당 5~8초, 나레이션+화면 묘사) 4) 마지막 한 줄(구독 유도). 사실관계가 불확실한 내용은 단정하지 말 것.",
+      "fallback": null
+    },
+    "plan": {
+      "description": "기획 (아이디어 → 콘텐츠 기획)",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "system": "너는 유튜브 콘텐츠 기획자다. 주제를 받아 타깃 시청자, 핵심 메시지, 예상 길이, 썸네일 컨셉을 제안한다.",
+      "fallback": null
+    },
+    "scenes": {
+      "description": "대본 → 장면 분할 (JSON)",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "system": "너는 영상 편집 감독이다. 주어진 쇼츠 대본을 장면으로 분할해 JSON만 출력한다. 다른 텍스트, 마크다운 백틱 없이 순수 JSON만. 형식: {\"title\": \"영상 제목\", \"hook\": \"첫 3초 문장\", \"scenes\": [{\"n\": 1, \"narration\": \"나레이션 문장\", \"visual\": \"화면 묘사(영상 AI 프롬프트용, 영어)\", \"seconds\": 6}], \"outro\": \"마지막 문장\", \"tags\": [\"태그\"], \"description\": \"유튜브 설명문\"} 장면은 4~7개, 장면당 5~8초, 전체 30~45초.",
+      "fallback": null
+    }
+  },
+  "providers": {
+    "anthropic": {
+      "env_key": "ANTHROPIC_API_KEY",
+      "pricing_usd_per_1m": {
+        "input": null,
+        "output": null
+      }
+    },
+    "openai": {
+      "env_key": "OPENAI_API_KEY",
+      "default_model": "gpt-4o-mini",
+      "pricing_usd_per_1m": {
+        "input": null,
+        "output": null
+      }
+    },
+    "gemini": {
+      "env_key": "GEMINI_API_KEY",
+      "default_model": "gemini-2.0-flash",
+      "pricing_usd_per_1m": {
+        "input": null,
+        "output": null
+      }
+    }
+  },
+  "usd_to_krw": 1400,
+  "media": {
+    "note": "영상/음성 생성 설정. provider를 바꾸면 즉시 교체됩니다.",
+    "video": {
+      "provider": "placeholder",
+      "providers": {
+        "placeholder": {
+          "description": "FFmpeg 로컬 생성 (무료, 구조 테스트용)"
+        },
+        "gemini_veo": {
+          "env_key": "GEMINI_API_KEY",
+          "model": "veo-3.1-fast-generate-001",
+          "description": "Google Veo 3.1 Fast (Gemini API, 네이티브 오디오)",
+          "price_note": "약 $0.15/초 (2026-07 검색 기준, 변동 가능)"
+        },
+        "fal_kling": {
+          "env_key": "FAL_KEY",
+          "model": "fal-ai/kling-video/v3/standard/text-to-video",
+          "description": "Kling 3.0 (fal.ai 경유, 가성비)",
+          "price_note": "약 $0.10/초 (2026-07 검색 기준, 변동 가능)"
+        }
+      },
+      "resolution": "1080x1920",
+      "warning": "Sora 2 API는 2026-09 종료 예정이라 제외함"
+    },
+    "voice": {
+      "provider": "silent",
+      "providers": {
+        "silent": {
+          "description": "무음 트랙 (자막만, 테스트용)"
+        },
+        "elevenlabs": {
+          "env_key": "ELEVENLABS_API_KEY",
+          "voice_id": "",
+          "model": "eleven_multilingual_v2",
+          "description": "ElevenLabs 한국어 TTS. voice_id를 발급받아 입력 필요"
+        }
+      }
+    }
+  }
+}
