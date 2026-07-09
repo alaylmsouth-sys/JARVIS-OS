@@ -80,7 +80,7 @@ def generate(provider: str, model: str, system: str, prompt: str,
     if provider == "gemini":
         r = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-            params={"key": key},
+            headers={"x-goog-api-key": key},
             json={"system_instruction": {"parts": [{"text": system}]},
                   "contents": [{"parts": [{"text": prompt}]}]},
             timeout=TIMEOUT,
