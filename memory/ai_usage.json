@@ -120,6 +120,17 @@
       "cost_usd": null,
       "cost_krw": null,
       "dry_run": true
+    },
+    {
+      "time": "2026-07-10T02:04:37+00:00",
+      "task": "invest_brief",
+      "provider": "gemini",
+      "model": "gemini-flash-latest",
+      "input_tokens": 139,
+      "output_tokens": 314,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
     }
   ]
 }
