@@ -65,6 +65,50 @@
       "cost_usd": null,
       "cost_krw": null,
       "dry_run": false
+    },
+    {
+      "time": "2026-07-09T23:36:21+00:00",
+      "task": "script",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 127,
+      "output_tokens": 598,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
+    },
+    {
+      "time": "2026-07-09T23:36:48+00:00",
+      "task": "scenes",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 761,
+      "output_tokens": 751,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
+    },
+    {
+      "time": "2026-07-10T00:46:51+00:00",
+      "task": "script",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 127,
+      "output_tokens": 773,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
+    },
+    {
+      "time": "2026-07-10T00:47:09+00:00",
+      "task": "scenes",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 937,
+      "output_tokens": 709,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
     }
   ]
 }
