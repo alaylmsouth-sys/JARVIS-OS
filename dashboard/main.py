@@ -74,6 +74,30 @@ def api_router_usage() -> JSONResponse:
     return JSONResponse(usage_summary())
 
 
+@app.get("/api/finance/summary")
+def api_finance_summary() -> JSONResponse:
+    from finance.finance import summary
+    return JSONResponse(summary())
+
+
+@app.post("/api/finance/entry")
+def api_finance_entry(payload: dict) -> JSONResponse:
+    from finance.finance import add_entry
+    try:
+        e = add_entry(payload.get("kind", ""), int(payload.get("amount", 0)),
+                      payload.get("category", "기타"), payload.get("memo", ""))
+        return JSONResponse({"ok": True, "entry": e})
+    except (ValueError, TypeError) as err:
+        return JSONResponse({"ok": False, "error": str(err)}, status_code=400)
+
+
+@app.delete("/api/finance/entry/{entry_id}")
+def api_finance_delete(entry_id: str) -> JSONResponse:
+    from finance.finance import delete_entry
+    ok = delete_entry(entry_id)
+    return JSONResponse({"ok": ok}, status_code=200 if ok else 404)
+
+
 @app.get("/api/approvals")
 def api_approvals() -> JSONResponse:
     return JSONResponse(_read_json("approval_queue.json"))

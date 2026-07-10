@@ -92,12 +92,12 @@
         {
           "id": "t14",
           "title": "AI 사용료 자동 집계",
-          "done": false
+          "done": true
         },
         {
           "id": "t15",
           "title": "수익/비용 관리",
-          "done": false
+          "done": true
         }
       ]
     },

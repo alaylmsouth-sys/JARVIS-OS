@@ -118,6 +118,32 @@
   </section>
 
   <section class="full">
+    <h2>💰 재무센터 · <span id="fin-year"></span>년</h2>
+    <div class="hud" style="margin-bottom:14px">
+      <div class="q"><b id="fin-income">0</b><span>수익</span></div>
+      <div class="q"><b id="fin-expense">0</b><span>비용(장부)</span></div>
+      <div class="q"><b id="fin-ai">0</b><span>AI 사용료</span></div>
+      <div class="q"><b id="fin-net">0</b><span>순이익</span></div>
+      <div class="q" style="border-color:var(--amber)"><b id="fin-tax">0</b><span>예상 종소세</span></div>
+    </div>
+    <div class="priority" id="fin-deadline" style="border-left-color:var(--amber)"></div>
+    <div style="display:flex;gap:8px;margin:14px 0;flex-wrap:wrap;align-items:center">
+      <select id="f-kind" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px">
+        <option value="income">수익</option><option value="expense">비용</option>
+      </select>
+      <input id="f-amount" type="number" placeholder="금액(원)" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:120px">
+      <input id="f-category" placeholder="분류 (예: 유튜브)" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:130px">
+      <input id="f-memo" placeholder="메모" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;flex:1;min-width:120px">
+      <button id="f-add">＋ 기록</button>
+    </div>
+    <table>
+      <thead><tr><th>날짜</th><th>구분</th><th>분류</th><th>금액</th><th>메모</th><th></th></tr></thead>
+      <tbody id="fin-entries"></tbody>
+    </table>
+    <div class="foot" id="fin-disclaimer"></div>
+  </section>
+
+  <section class="full">
     <h2>AI Router · 호출 기록과 사용료</h2>
     <div class="hud" style="margin-bottom:12px">
       <div class="q"><b id="rc-total">0</b><span>총 호출</span></div>
@@ -248,7 +274,41 @@ async function loadRouter(){
   }).join("") : `<tr><td colspan="5" class="empty">아직 호출 기록이 없습니다. 터미널에서 python -m router.cli "주제" --dry-run 을 실행해 보세요.</td></tr>`;
 }
 
-loadProject(); loadScoreboard(); loadApprovals(); loadRouter();
+const won = n => Math.round(n).toLocaleString("ko-KR");
+
+async function loadFinance(){
+  const r = await fetch("/api/finance/summary"); const s = await r.json();
+  $("#fin-year").textContent = s.year;
+  $("#fin-income").textContent = won(s.income);
+  $("#fin-expense").textContent = won(s.expense);
+  $("#fin-ai").textContent = won(s.ai_cost.cost_krw) + (s.ai_cost.unpriced ? ` (+미산정 ${s.ai_cost.unpriced}건)` : "");
+  $("#fin-net").textContent = won(s.net);
+  $("#fin-tax").textContent = won(s.tax_estimate.total);
+  const d = s.deadlines[0];
+  const note = (s.filing_notes && s.filing_notes[0]) ? `<div class="warn" style="margin-top:6px">📌 ${s.filing_notes[0]}</div>` : "";
+  $("#fin-deadline").innerHTML = `📅 다음 신고: <b>${d.name}</b> — ${d.date} <b style="color:var(--amber)">(D-${d.d_day})</b>${note}`;
+  $("#fin-entries").innerHTML = s.recent.length ? s.recent.map(e=>
+    `<tr><td class="status">${e.date}</td>
+     <td>${e.kind==="income"?"수익":"비용"}</td><td>${e.category}</td>
+     <td class="score" style="color:${e.kind==="income"?"var(--ok)":"var(--danger)"}">${won(e.amount)}원</td>
+     <td class="status">${e.memo||""}</td>
+     <td><button data-del="${e.id}" style="padding:3px 9px;font-size:12px">삭제</button></td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">기록이 없습니다. 위 입력칸이나 python -m finance.cli 로 추가하세요.</td></tr>`;
+  $("#fin-disclaimer").textContent = "⚠ " + s.tax_disclaimer + ` (소득공제 ${won(s.income_deduction)}원 반영)`;
+  document.querySelectorAll("[data-del]").forEach(b=>{
+    b.onclick=async()=>{await fetch(`/api/finance/entry/${b.dataset.del}`,{method:"DELETE"}); loadFinance();};
+  });
+}
+$("#f-add").onclick = async ()=>{
+  const body = {kind:$("#f-kind").value, amount:Number($("#f-amount").value),
+                category:$("#f-category").value||"기타", memo:$("#f-memo").value};
+  const r = await fetch("/api/finance/entry",{method:"POST",
+    headers:{"content-type":"application/json"}, body:JSON.stringify(body)});
+  if(r.ok){ $("#f-amount").value=""; $("#f-memo").value=""; loadFinance(); }
+  else { const d = await r.json(); alert("입력 오류: "+d.error); }
+};
+
+loadProject(); loadScoreboard(); loadApprovals(); loadRouter(); loadFinance();
 </script>
 </body>
 </html>
