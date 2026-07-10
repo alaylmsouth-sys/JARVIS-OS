@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 nohup.out
 video/output/
+memory/youtube_token.json

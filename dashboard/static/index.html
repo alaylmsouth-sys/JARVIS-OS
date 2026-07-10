@@ -258,7 +258,12 @@ async function loadApprovals(){
     if(it.status==="pending"){
       right = `<button class="stamp" data-id="${it.id}" data-act="approve">승 인</button>`;
     } else if(it.status==="approved"){
-      right = `<div class="stamped">승 인</div>`;
+      right = `<div style="text-align:center"><div class="stamped">승 인</div>
+        <button data-upload="${it.id}" style="margin-top:8px;border-color:var(--danger);color:var(--danger)">📤 유튜브 업로드</button>
+        <div class="status" style="font-size:10px;margin-top:4px">비공개(private)로 업로드됩니다</div></div>`;
+    } else if(it.status==="uploaded"){
+      right = `<div style="text-align:center"><div class="stamped" style="border-color:var(--ok);color:var(--ok)">업로드</div>
+        <a href="${it.youtube?.url}" target="_blank" style="display:block;margin-top:6px;font-size:12px">${it.youtube?.url||""}</a></div>`;
     } else {
       right = `<span class="badge ${it.status}">${it.status==="rejected"?"반려":"재생성 요청"}</span>`;
     }
@@ -286,6 +291,17 @@ async function loadApprovals(){
     b.onclick=async()=>{
       await fetch(`/api/approvals/${b.dataset.id}/${b.dataset.act}`,{method:"POST"});
       loadApprovals();
+    };
+  });
+  wrap.querySelectorAll("button[data-upload]").forEach(b=>{
+    b.onclick=async()=>{
+      if(!confirm("유튜브에 비공개(private)로 업로드합니다. 진행할까요?")) return;
+      b.textContent="업로드 중…"; b.disabled=true;
+      const r=await fetch(`/api/upload/${b.dataset.upload}`,{method:"POST",
+        headers:{"content-type":"application/json"},body:JSON.stringify({privacy:"private"})});
+      const d=await r.json();
+      if(!d.ok) alert("업로드 실패: "+d.error);
+      loadApprovals(); loadProject();
     };
   });
 }

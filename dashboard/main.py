@@ -176,6 +176,19 @@ def api_approvals() -> JSONResponse:
     return JSONResponse(_read_json("approval_queue.json"))
 
 
+@app.post("/api/upload/{item_id}")
+def api_upload(item_id: str, payload: dict) -> JSONResponse:
+    """승인된 항목만 업로드. 사용자의 명시적 버튼 클릭으로만 호출됨."""
+    from video.uploader import upload
+    try:
+        r = upload(item_id, payload.get("privacy", "private"))
+        return JSONResponse({"ok": True, **r})
+    except PermissionError as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=403)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
 @app.post("/api/approvals/{item_id}/{action}")
 def api_approval_action(item_id: str, action: str) -> JSONResponse:
     """승인 처리. action: approve | reject | retry
