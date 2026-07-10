@@ -118,6 +118,37 @@
   </section>
 
   <section class="full">
+    <h2>📈 투자센터</h2>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <input id="i-ticker" placeholder="티커 (005930.KS, NVDA)" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:170px">
+      <input id="i-name" placeholder="종목명" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:110px">
+      <input id="i-qty" type="number" placeholder="수량" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:80px">
+      <input id="i-avg" type="number" placeholder="평균단가" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:110px">
+      <select id="i-cur" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px">
+        <option>KRW</option><option>USD</option>
+      </select>
+      <button id="i-add">＋ 보유 추가</button>
+    </div>
+    <table>
+      <thead><tr><th>종목</th><th>수량</th><th>평단</th><th>현재가</th><th>평가손익</th><th>시세</th><th></th></tr></thead>
+      <tbody id="i-holdings"></tbody>
+    </table>
+    <div class="qgrid" id="i-totals" style="margin-top:12px"></div>
+    <div style="display:flex;gap:8px;margin:14px 0 6px;flex-wrap:wrap;align-items:center">
+      <input id="i-edate" type="date" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px">
+      <input id="i-ename" placeholder="일정 (예: 삼성전자 실적발표)" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;flex:1;min-width:160px">
+      <button id="i-eadd">＋ 일정</button>
+    </div>
+    <div id="i-events"></div>
+    <div style="margin-top:14px">
+      <textarea id="i-news" placeholder="(선택) 뉴스 기사나 공시 내용을 붙여넣으면 브리핑에 반영됩니다" style="width:100%;min-height:60px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--sans)"></textarea>
+      <button id="i-brief" style="margin-top:8px">🤖 AI 브리핑 생성</button>
+      <div id="i-briefout" class="priority" style="display:none;margin-top:10px;white-space:pre-wrap"></div>
+    </div>
+    <div class="foot" id="i-disclaimer"></div>
+  </section>
+
+  <section class="full">
     <h2>💰 재무센터 · <span id="fin-year"></span>년</h2>
     <div class="hud" style="margin-bottom:14px">
       <div class="q"><b id="fin-income">0</b><span>수익</span></div>
@@ -308,7 +339,66 @@ $("#f-add").onclick = async ()=>{
   else { const d = await r.json(); alert("입력 오류: "+d.error); }
 };
 
-loadProject(); loadScoreboard(); loadApprovals(); loadRouter(); loadFinance();
+async function loadInvest(){
+  const r = await fetch("/api/invest/summary"); const s = await r.json();
+  const pnlColor = v => v==null ? "" : (v>=0 ? "var(--ok)" : "var(--danger)");
+  $("#i-holdings").innerHTML = s.holdings.length ? s.holdings.map(h=>`
+    <tr><td><b>${h.name}</b> <span class="status">${h.ticker}</span></td>
+      <td class="score">${h.qty}</td><td class="score">${won(h.avg_price)}</td>
+      <td class="score">${h.last_price?won(h.last_price):"—"}<div class="status" style="font-size:10px">${h.price_time||""}</div></td>
+      <td class="score" style="color:${pnlColor(h.pnl)}">${h.pnl==null?"—":won(h.pnl)+" ("+h.pnl_pct+"%)"}</td>
+      <td><button data-fetch="${h.id}" style="padding:3px 8px;font-size:12px">조회</button>
+          <button data-manual="${h.id}" style="padding:3px 8px;font-size:12px">입력</button></td>
+      <td><button data-hdel="${h.id}" style="padding:3px 8px;font-size:12px">삭제</button></td></tr>`).join("")
+    : `<tr><td colspan="7" class="empty">보유 종목이 없습니다. 위에서 추가하세요.</td></tr>`;
+  $("#i-totals").innerHTML = Object.entries(s.totals).map(([cur,t])=>`
+    <div class="q" style="min-width:150px"><b style="color:${pnlColor(t.pnl)}">${t.pnl==null?"시세 필요":won(t.pnl)+" ("+t.pnl_pct+"%)"}</b>
+    <span>${cur} 평가손익 (원금 ${won(t.cost)})</span></div>`).join("");
+  $("#i-events").innerHTML = s.events.map(e=>
+    `<div class="task"><span>📅 ${e.date} · ${e.name} <b style="color:var(--amber)">D-${e.d_day}</b></span>
+     <button data-edel="${e.id}" style="margin-left:auto;padding:2px 8px;font-size:12px">삭제</button></div>`).join("")
+    || `<div class="empty">등록된 일정이 없습니다 (실적 발표, 배당락 등을 기록하세요)</div>`;
+  $("#i-disclaimer").textContent = "⚠ " + s.disclaimer;
+
+  document.querySelectorAll("[data-hdel]").forEach(b=>b.onclick=async()=>{
+    await fetch(`/api/invest/holding/${b.dataset.hdel}`,{method:"DELETE"}); loadInvest();});
+  document.querySelectorAll("[data-edel]").forEach(b=>b.onclick=async()=>{
+    await fetch(`/api/invest/event/${b.dataset.edel}`,{method:"DELETE"}); loadInvest();});
+  document.querySelectorAll("[data-fetch]").forEach(b=>b.onclick=async()=>{
+    b.textContent="…";
+    const r=await fetch(`/api/invest/price/${b.dataset.fetch}`,{method:"POST",
+      headers:{"content-type":"application/json"},body:JSON.stringify({fetch:true})});
+    if(!r.ok){const d=await r.json(); alert("자동 조회 실패: "+d.error+"\n[입력] 버튼으로 수동 입력하세요.");}
+    loadInvest();});
+  document.querySelectorAll("[data-manual]").forEach(b=>b.onclick=async()=>{
+    const p=prompt("현재가를 입력하세요"); if(!p)return;
+    const r=await fetch(`/api/invest/price/${b.dataset.manual}`,{method:"POST",
+      headers:{"content-type":"application/json"},body:JSON.stringify({price:Number(p)})});
+    if(!r.ok){const d=await r.json(); alert(d.error);} loadInvest();});
+}
+$("#i-add").onclick=async()=>{
+  const body={ticker:$("#i-ticker").value,name:$("#i-name").value,
+    qty:Number($("#i-qty").value),avg_price:Number($("#i-avg").value),currency:$("#i-cur").value};
+  const r=await fetch("/api/invest/holding",{method:"POST",
+    headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+  if(r.ok){["i-ticker","i-name","i-qty","i-avg"].forEach(i=>$("#"+i).value=""); loadInvest();}
+  else{const d=await r.json(); alert("입력 오류: "+d.error);}
+};
+$("#i-eadd").onclick=async()=>{
+  const r=await fetch("/api/invest/event",{method:"POST",headers:{"content-type":"application/json"},
+    body:JSON.stringify({date:$("#i-edate").value,name:$("#i-ename").value})});
+  if(r.ok){$("#i-ename").value=""; loadInvest();}
+  else{const d=await r.json(); alert("입력 오류: "+d.error);}
+};
+$("#i-brief").onclick=async()=>{
+  const out=$("#i-briefout"); out.style.display="block"; out.textContent="브리핑 생성 중… (AI 호출)";
+  const r=await fetch("/api/invest/brief",{method:"POST",headers:{"content-type":"application/json"},
+    body:JSON.stringify({news:$("#i-news").value})});
+  const d=await r.json();
+  out.textContent = d.ok ? d.brief : "브리핑 실패: "+d.error;
+};
+
+loadProject(); loadScoreboard(); loadApprovals(); loadRouter(); loadFinance(); loadInvest();
 </script>
 </body>
 </html>

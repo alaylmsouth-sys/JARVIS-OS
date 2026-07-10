@@ -108,12 +108,12 @@
         {
           "id": "t16",
           "title": "보유 종목 관리",
-          "done": false
+          "done": true
         },
         {
           "id": "t17",
           "title": "뉴스/일정 분석",
-          "done": false
+          "done": true
         }
       ]
     }

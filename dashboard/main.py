@@ -98,6 +98,79 @@ def api_finance_delete(entry_id: str) -> JSONResponse:
     return JSONResponse({"ok": ok}, status_code=200 if ok else 404)
 
 
+# ── 투자센터 ──────────────────────────────────────────
+
+@app.get("/api/invest/summary")
+def api_invest_summary() -> JSONResponse:
+    from invest.portfolio import summary
+    return JSONResponse(summary())
+
+
+@app.post("/api/invest/holding")
+def api_invest_add(payload: dict) -> JSONResponse:
+    from invest.portfolio import add_holding
+    try:
+        h = add_holding(payload["ticker"], payload.get("name") or payload["ticker"],
+                        float(payload["qty"]), float(payload["avg_price"]),
+                        payload.get("currency", "KRW"))
+        return JSONResponse({"ok": True, "holding": h})
+    except (ValueError, KeyError, TypeError) as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
+@app.delete("/api/invest/holding/{hid}")
+def api_invest_del(hid: str) -> JSONResponse:
+    from invest.portfolio import remove_holding
+    ok = remove_holding(hid)
+    return JSONResponse({"ok": ok}, status_code=200 if ok else 404)
+
+
+@app.post("/api/invest/price/{hid}")
+def api_invest_price(hid: str, payload: dict) -> JSONResponse:
+    """수동 입력({"price": 123}) 또는 자동 조회({"fetch": true})."""
+    from invest.portfolio import set_price, _load
+    try:
+        if payload.get("fetch"):
+            from invest.prices import fetch_price
+            h = next((x for x in _load()["holdings"] if x["id"] == hid), None)
+            if not h:
+                return JSONResponse({"ok": False, "error": "종목 없음"}, status_code=404)
+            p = fetch_price(h["ticker"])
+            updated = set_price(hid, p["price"], source="yahoo")
+        else:
+            updated = set_price(hid, float(payload["price"]), source="manual")
+        return JSONResponse({"ok": True, "holding": updated})
+    except (RuntimeError, ValueError, KeyError, TypeError) as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
+@app.post("/api/invest/event")
+def api_invest_event(payload: dict) -> JSONResponse:
+    from invest.portfolio import add_event
+    try:
+        e = add_event(payload["date"], payload["name"])
+        return JSONResponse({"ok": True, "event": e})
+    except (ValueError, KeyError) as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
+@app.delete("/api/invest/event/{eid}")
+def api_invest_event_del(eid: str) -> JSONResponse:
+    from invest.portfolio import remove_event
+    ok = remove_event(eid)
+    return JSONResponse({"ok": ok}, status_code=200 if ok else 404)
+
+
+@app.post("/api/invest/brief")
+def api_invest_brief(payload: dict) -> JSONResponse:
+    from invest.analyst import brief
+    try:
+        text = brief(payload.get("news", ""))
+        return JSONResponse({"ok": True, "brief": text})
+    except Exception as e:  # 키 미설정/모델 오류 등을 화면에 전달
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
 @app.get("/api/approvals")
 def api_approvals() -> JSONResponse:
     return JSONResponse(_read_json("approval_queue.json"))
