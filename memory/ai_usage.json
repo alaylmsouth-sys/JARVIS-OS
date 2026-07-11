@@ -142,6 +142,72 @@
       "cost_usd": null,
       "cost_krw": null,
       "dry_run": false
+    },
+    {
+      "time": "2026-07-11T03:58:43+00:00",
+      "task": "script",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 122,
+      "output_tokens": 736,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
+    },
+    {
+      "time": "2026-07-11T03:58:51+00:00",
+      "task": "scenes",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 900,
+      "output_tokens": 799,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
+    },
+    {
+      "time": "2026-07-11T04:01:48+00:00",
+      "task": "script",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 122,
+      "output_tokens": 699,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
+    },
+    {
+      "time": "2026-07-11T04:01:59+00:00",
+      "task": "scenes",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 863,
+      "output_tokens": 656,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
+    },
+    {
+      "time": "2026-07-11T04:04:57+00:00",
+      "task": "script",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 122,
+      "output_tokens": 783,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
+    },
+    {
+      "time": "2026-07-11T04:05:07+00:00",
+      "task": "scenes",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 947,
+      "output_tokens": 656,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
     }
   ]
 }

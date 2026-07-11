@@ -39,6 +39,7 @@ def assemble(clips: list[Path], audio: Path, scenes: dict, job_dir: Path) -> Pat
         ["ffmpeg", "-y", "-loglevel", "error",
          "-i", str(joined), "-i", str(audio),
          "-vf", f"subtitles={srt.name}:force_style='{style}'",
+         "-af", "apad",  # 나레이션이 영상보다 짧으면 무음 패딩 (영상 길이 유지)
          "-map", "0:v", "-map", "1:a", "-shortest",
          "-c:v", "libx264", "-preset", "fast", "-c:a", "aac", str(final)],
         check=True, cwd=job_dir)

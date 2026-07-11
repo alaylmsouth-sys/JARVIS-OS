@@ -59,7 +59,11 @@ def api_scoreboard() -> JSONResponse:
     table = _read_json("routing_table.json")
     writer_provider = table["routes"]["script"]["provider"]
     env_key = table["providers"][writer_provider]["env_key"]
+    vprov = table.get("media", {}).get("voice", {}).get("provider", "silent")
     for agent in data["agents"]:
+        if agent["name"] == "Voice AI":
+            agent["status"] = (f"연결됨 ({vprov})" if vprov != "silent"
+                               else "silent (TTS 미설정)")
         if agent["name"] == "Writer AI":
             agent["status"] = (
                 f"연결됨 ({writer_provider})" if has_key(env_key)
