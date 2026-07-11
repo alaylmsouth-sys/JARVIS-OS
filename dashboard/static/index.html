@@ -103,12 +103,7 @@
     <div class="priority" id="priority">불러오는 중…</div>
   </section>
 
-  <section class="full">
-    <h2>📊 오늘의 주요 종목 <span class="status" id="cb-date"></span>
-      <button id="cb-refresh" style="float:right;padding:3px 10px;font-size:12px">↻ 갱신</button></h2>
-    <div id="chartboard" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px"></div>
-    <div class="foot" id="cb-note"></div>
-  </section>
+
 
   <div id="modal" style="display:none;position:fixed;inset:0;background:rgba(6,10,20,.82);z-index:50;padding:20px;overflow:auto">
     <div style="max-width:760px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px">
@@ -148,6 +143,46 @@
     <div class="foot" id="scorenote"></div>
   </section>
 
+
+
+  <section class="full">
+    <h2>📊 오늘의 주요 종목 <span class="status" id="cb-date"></span>
+      <button id="cb-refresh" style="float:right;padding:3px 10px;font-size:12px">↻ 갱신</button></h2>
+    <div id="chartboard" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px"></div>
+    <div class="foot" id="cb-note"></div>
+  </section>
+
+  <section class="full">
+    <h2>📈 투자센터</h2>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <input id="i-ticker" placeholder="티커 (005930.KS, NVDA)" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:170px">
+      <input id="i-name" placeholder="종목명" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:110px">
+      <input id="i-qty" type="number" placeholder="수량" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:80px">
+      <input id="i-avg" type="number" placeholder="평균단가" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:110px">
+      <select id="i-cur" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px">
+        <option>KRW</option><option>USD</option>
+      </select>
+      <button id="i-add">＋ 보유 추가</button>
+    </div>
+    <table>
+      <thead><tr><th>종목</th><th>수량</th><th>평단</th><th>현재가</th><th>평가손익</th><th>시세</th><th></th></tr></thead>
+      <tbody id="i-holdings"></tbody>
+    </table>
+    <div class="qgrid" id="i-totals" style="margin-top:12px"></div>
+    <div style="display:flex;gap:8px;margin:14px 0 6px;flex-wrap:wrap;align-items:center">
+      <input id="i-edate" type="date" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px">
+      <input id="i-ename" placeholder="일정 (예: 삼성전자 실적발표)" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;flex:1;min-width:160px">
+      <button id="i-eadd">＋ 일정</button>
+    </div>
+    <div id="i-events"></div>
+    <div style="margin-top:14px">
+      <textarea id="i-news" placeholder="(선택) 뉴스 기사나 공시 내용을 붙여넣으면 브리핑에 반영됩니다" style="width:100%;min-height:60px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--sans)"></textarea>
+      <button id="i-brief" style="margin-top:8px">🤖 AI 브리핑 생성</button>
+      <div id="i-briefout" class="priority" style="display:none;margin-top:10px;white-space:pre-wrap"></div>
+    </div>
+    <div class="foot" id="i-disclaimer"></div>
+  </section>
+
   <section class="full">
     <details>
     <summary style="cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--muted);text-transform:uppercase">🧭 매매 규율 · 체크리스트 & 일지 (펼치기)</summary>
@@ -180,37 +215,6 @@
     </div>
     </div>
     </details>
-  </section>
-
-  <section class="full">
-    <h2>📈 투자센터</h2>
-    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-      <input id="i-ticker" placeholder="티커 (005930.KS, NVDA)" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:170px">
-      <input id="i-name" placeholder="종목명" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:110px">
-      <input id="i-qty" type="number" placeholder="수량" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:80px">
-      <input id="i-avg" type="number" placeholder="평균단가" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:110px">
-      <select id="i-cur" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px">
-        <option>KRW</option><option>USD</option>
-      </select>
-      <button id="i-add">＋ 보유 추가</button>
-    </div>
-    <table>
-      <thead><tr><th>종목</th><th>수량</th><th>평단</th><th>현재가</th><th>평가손익</th><th>시세</th><th></th></tr></thead>
-      <tbody id="i-holdings"></tbody>
-    </table>
-    <div class="qgrid" id="i-totals" style="margin-top:12px"></div>
-    <div style="display:flex;gap:8px;margin:14px 0 6px;flex-wrap:wrap;align-items:center">
-      <input id="i-edate" type="date" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px">
-      <input id="i-ename" placeholder="일정 (예: 삼성전자 실적발표)" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;flex:1;min-width:160px">
-      <button id="i-eadd">＋ 일정</button>
-    </div>
-    <div id="i-events"></div>
-    <div style="margin-top:14px">
-      <textarea id="i-news" placeholder="(선택) 뉴스 기사나 공시 내용을 붙여넣으면 브리핑에 반영됩니다" style="width:100%;min-height:60px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--sans)"></textarea>
-      <button id="i-brief" style="margin-top:8px">🤖 AI 브리핑 생성</button>
-      <div id="i-briefout" class="priority" style="display:none;margin-top:10px;white-space:pre-wrap"></div>
-    </div>
-    <div class="foot" id="i-disclaimer"></div>
   </section>
 
   <section class="full">
