@@ -82,7 +82,7 @@
       "warning": "Sora 2 API는 2026-09 종료 예정이라 제외함"
     },
     "voice": {
-      "provider": "silent",
+      "provider": "gemini_tts",
       "providers": {
         "silent": {
           "description": "무음 트랙 (자막만, 테스트용)"
@@ -92,6 +92,12 @@
           "voice_id": "",
           "model": "eleven_multilingual_v2",
           "description": "ElevenLabs 한국어 TTS. voice_id를 발급받아 입력 필요"
+        },
+        "gemini_tts": {
+          "env_key": "GEMINI_API_KEY",
+          "model": "gemini-2.5-flash-preview-tts",
+          "voice": "Kore",
+          "description": "Gemini TTS (무료 한도)"
         }
       }
     }
