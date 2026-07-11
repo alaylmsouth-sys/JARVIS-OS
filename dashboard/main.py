@@ -175,6 +175,16 @@ def api_invest_brief(payload: dict) -> JSONResponse:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
 
 
+@app.get("/api/screen/{ticker}")
+def api_screen(ticker: str) -> JSONResponse:
+    """자동 분석: 지표 계산 + 체크리스트 자동 채점 (추천 아님)."""
+    from invest.screener import screen
+    try:
+        return JSONResponse(screen(ticker))
+    except RuntimeError as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
 # ── 매매 규율 (체크리스트 + 일지) ─────────────────────
 
 @app.get("/api/discipline")

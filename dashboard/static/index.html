@@ -122,6 +122,11 @@
     <div class="hud" style="margin-bottom:12px" id="d-stats"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="d-grid">
       <div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+          <input id="scr-ticker" placeholder="티커 자동 분석 (005930.KS)" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;flex:1;min-width:150px">
+          <button id="scr-run">🔎 자동 분석</button>
+        </div>
+        <div id="scr-out" class="priority" style="display:none;font-size:13px;margin-bottom:10px"></div>
         <div class="foot" style="margin:0 0 8px">매수 전 체크 — 정직하게 해당되는 것만. 점수는 당신의 규칙일 뿐, 매수 신호가 아닙니다.</div>
         <div id="d-checklist"></div>
         <div class="priority" id="d-score" style="margin-top:10px"></div>
@@ -494,6 +499,29 @@ async function loadDiscipline(){
       body:JSON.stringify({followed_plan:f,note})});
     loadDiscipline();});
 }
+$("#scr-run").onclick=async()=>{
+  const t=$("#scr-ticker").value.trim(); if(!t)return;
+  const out=$("#scr-out"); out.style.display="block"; out.textContent="분석 중… (일봉 데이터 조회)";
+  const r=await fetch(`/api/screen/${encodeURIComponent(t)}`);
+  const d=await r.json();
+  if(!r.ok){ out.textContent="분석 실패: "+d.error; return; }
+  const f=d.facts, c=f.checks;
+  const yn=v=>v===true?"✅":v===false?"✖":"—";
+  out.innerHTML=`<b>${d.ticker}</b> 현재가 ${f.price} ${d.currency} · RSI(14) ${f.rsi14??"—"} · 거래량 ${f.volume_ratio_20d??"—"}배(20일평균 대비)<br>
+    ${yn(c.ma5_above_ma20)} 5일선>20일선 (${f.ma5??"—"} / ${f.ma20??"—"}) &nbsp;
+    ${yn(c.ma20_rising)} 20일선 상승 &nbsp;
+    ${yn(c.above_ma120)} 120일선 위 (${f.ma120??"—"}) &nbsp;
+    ${yn(c.uptrend)} 상승추세 &nbsp;
+    ${yn(c.volume_spike)} 거래량 급증<br>
+    <span class="status">→ 차트/거래량 항목 자동 체크됨. ${d.human_items}</span><br>
+    <span class="status">⚠ ${d.disclaimer}</span>`;
+  document.querySelectorAll(".d-check").forEach(cb=>{
+    if(["c1","c2","c3","c4","v1"].includes(cb.dataset.id))
+      cb.checked = d.auto_checked.includes(cb.dataset.id);
+  });
+  $("#d-ticker").value = d.ticker;
+  dScore();
+};
 $("#d-open").onclick=async()=>{
   const body={ticker:$("#d-ticker").value,name:$("#d-ticker").value,
     qty:Number($("#d-qty").value),price:Number($("#d-price").value),

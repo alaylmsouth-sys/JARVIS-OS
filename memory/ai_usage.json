@@ -208,6 +208,28 @@
       "cost_usd": null,
       "cost_krw": null,
       "dry_run": false
+    },
+    {
+      "time": "2026-07-11T04:38:48+00:00",
+      "task": "invest_brief",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 170,
+      "output_tokens": 551,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
+    },
+    {
+      "time": "2026-07-11T04:39:44+00:00",
+      "task": "invest_brief",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 175,
+      "output_tokens": 554,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
     }
   ]
 }

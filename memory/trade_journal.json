@@ -1,3 +1,26 @@
 {
-  "trades": []
+  "trades": [
+    {
+      "id": "e929ede8",
+      "date": "2026-07-11",
+      "ticker": "한화솔루션",
+      "name": "한화솔루션",
+      "qty": 11.0,
+      "entry_price": 47263.0,
+      "plan": {
+        "stop_loss_pct": 20.0,
+        "target_pct": 1.0,
+        "reason": "미래성"
+      },
+      "checklist": {
+        "score": 0,
+        "max": 100,
+        "passed": false,
+        "checked": []
+      },
+      "status": "open",
+      "close": null,
+      "review": null
+    }
+  ]
 }
