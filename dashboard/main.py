@@ -175,6 +175,47 @@ def api_invest_brief(payload: dict) -> JSONResponse:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
 
 
+# ── 매매 규율 (체크리스트 + 일지) ─────────────────────
+
+@app.get("/api/discipline")
+def api_discipline() -> JSONResponse:
+    from invest.discipline import load_rules, journal, stats
+    return JSONResponse({"rules": load_rules(), "journal": journal(),
+                         "stats": stats()})
+
+
+@app.post("/api/discipline/trade")
+def api_discipline_trade(payload: dict) -> JSONResponse:
+    from invest.discipline import open_trade
+    try:
+        t = open_trade(payload["ticker"], payload.get("name") or payload["ticker"],
+                       float(payload["qty"]), float(payload["price"]),
+                       float(payload["stop_loss_pct"]), float(payload["target_pct"]),
+                       payload.get("reason", ""), payload.get("checked", []))
+        return JSONResponse({"ok": True, "trade": t})
+    except (ValueError, KeyError, TypeError) as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
+@app.post("/api/discipline/close/{tid}")
+def api_discipline_close(tid: str, payload: dict) -> JSONResponse:
+    from invest.discipline import close_trade
+    try:
+        return JSONResponse({"ok": True, "trade": close_trade(tid, float(payload["price"]))})
+    except (ValueError, KeyError, TypeError) as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
+@app.post("/api/discipline/review/{tid}")
+def api_discipline_review(tid: str, payload: dict) -> JSONResponse:
+    from invest.discipline import review_trade
+    try:
+        return JSONResponse({"ok": True, "trade": review_trade(
+            tid, bool(payload.get("followed_plan")), payload.get("note", ""))})
+    except ValueError as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
 @app.get("/api/approvals")
 def api_approvals() -> JSONResponse:
     return JSONResponse(_read_json("approval_queue.json"))

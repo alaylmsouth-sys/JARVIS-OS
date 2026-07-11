@@ -23,7 +23,7 @@
   header .clock{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
 
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}.d-grid{grid-template-columns:1fr !important}}
   section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
   section h2{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--muted);margin-bottom:14px;text-transform:uppercase}
   .full{grid-column:1/-1}
@@ -115,6 +115,31 @@
       <tbody id="scoreboard"></tbody>
     </table>
     <div class="foot" id="scorenote"></div>
+  </section>
+
+  <section class="full">
+    <h2>🧭 매매 규율 · 체크리스트 & 일지</h2>
+    <div class="hud" style="margin-bottom:12px" id="d-stats"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="d-grid">
+      <div>
+        <div class="foot" style="margin:0 0 8px">매수 전 체크 — 정직하게 해당되는 것만. 점수는 당신의 규칙일 뿐, 매수 신호가 아닙니다.</div>
+        <div id="d-checklist"></div>
+        <div class="priority" id="d-score" style="margin-top:10px"></div>
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <input id="d-ticker" placeholder="티커" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;width:90px">
+          <input id="d-qty" type="number" placeholder="수량" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;width:70px">
+          <input id="d-price" type="number" placeholder="매수가" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;width:90px">
+          <input id="d-stop" type="number" placeholder="손절%" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;width:70px">
+          <input id="d-target" type="number" placeholder="목표%" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;width:70px">
+        </div>
+        <input id="d-reason" placeholder="매수 근거 (필수 — 복기의 재료)" style="width:100%;margin-top:6px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px">
+        <button id="d-open" style="margin-top:8px">📓 매수 기록 (계획 포함)</button>
+      </div>
+      <div>
+        <div class="foot" style="margin:0 0 8px">매매일지 — 청산하면 손익이 계산되고, 복기하면 규율 통계가 쌓입니다.</div>
+        <div id="d-journal"></div>
+      </div>
+    </div>
   </section>
 
   <section class="full">
@@ -414,7 +439,73 @@ $("#i-brief").onclick=async()=>{
   out.textContent = d.ok ? d.brief : "브리핑 실패: "+d.error;
 };
 
-loadProject(); loadScoreboard(); loadApprovals(); loadRouter(); loadFinance(); loadInvest();
+let dRules=null;
+function dScore(){
+  const checked=[...document.querySelectorAll(".d-check:checked")].map(c=>c.dataset.id);
+  let total=0,max=0;
+  dRules.categories.forEach(c=>c.items.forEach(i=>{max+=i.points; if(checked.includes(i.id))total+=i.points;}));
+  const pass=total>=dRules.threshold;
+  $("#d-score").innerHTML=`합계 <b style="color:${pass?"var(--ok)":"var(--amber)"}">${total}점</b> / ${max}점 · 기준 ${dRules.threshold}점 → ${pass?"기준 충족 (그래도 판단은 당신의 몫)":"기준 미달 — 규칙대로라면 지금은 아닙니다"}`;
+  return checked;
+}
+async function loadDiscipline(){
+  const r=await fetch("/api/discipline"); const d=await r.json();
+  dRules=d.rules;
+  $("#d-checklist").innerHTML=d.rules.categories.map(c=>
+    `<div style="margin-bottom:6px"><b style="font-size:13px">${c.name}</b>`+
+    c.items.map(i=>`<label class="task" style="display:flex"><input type="checkbox" class="d-check" data-id="${i.id}" style="accent-color:var(--arc)"> <span>${i.text} <em class="status">(${i.points}점)</em></span></label>`).join("")+`</div>`).join("");
+  document.querySelectorAll(".d-check").forEach(c=>c.onchange=dScore);
+  dScore();
+
+  const s=d.stats;
+  $("#d-stats").innerHTML = s.n===0 ? `<div class="empty">${s.note}</div>` : `
+    <div class="q"><b>${s.n}건</b><span>청산 매매${s.low_sample?" ⚠표본부족":""}</span></div>
+    <div class="q"><b>${s.win_rate}%</b><span>승률 (실기록)</span></div>
+    <div class="q"><b style="color:${s.total_pnl>=0?"var(--ok)":"var(--danger)"}">${won(s.total_pnl)}원</b><span>누적 손익</span></div>
+    <div class="q"><b>${s.plan_adherence.followed_rate??"—"}%</b><span>계획 준수율</span></div>
+    <div class="q"><b>${s.plan_adherence.followed_avg_pct??"—"}% / ${s.plan_adherence.broke_avg_pct??"—"}%</b><span>준수시/위반시 평균수익</span></div>`;
+
+  $("#d-journal").innerHTML = d.journal.length ? d.journal.map(t=>{
+    const pnl=t.close?`<b style="color:${t.close.pnl>=0?"var(--ok)":"var(--danger)"}">${won(t.close.pnl)}원 (${t.close.pnl_pct}%)</b>`:"";
+    const chk=`체크 ${t.checklist.score}/${t.checklist.max}${t.checklist.passed?"":" ⚠기준미달"}`;
+    let action="";
+    if(t.status==="open") action=`<button data-close="${t.id}" style="padding:3px 8px;font-size:12px">청산</button>`;
+    else if(!t.review) action=`<button data-rev="${t.id}" style="padding:3px 8px;font-size:12px;border-color:var(--amber)">복기</button>`;
+    else action=`<span class="status">${t.review.followed_plan?"✅ 계획 준수":"⚠ 계획 위반"}${t.review.note?" · "+t.review.note:""}</span>`;
+    return `<div class="card" style="padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div><b>${t.name}</b> <span class="status">${t.ticker} · ${t.date} · ${t.qty}주 @ ${won(t.entry_price)}</span>
+          <div class="status" style="font-size:12px">손절 -${t.plan.stop_loss_pct}% / 목표 +${t.plan.target_pct}% · ${chk}</div>
+          <div class="status" style="font-size:12px">근거: ${t.plan.reason}</div></div>
+        <div style="text-align:right">${pnl}<div>${action}</div></div>
+      </div></div>`;
+  }).join("") : `<div class="empty">기록 없음 — 왼쪽에서 첫 매매를 계획과 함께 기록하세요.</div>`;
+
+  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=async()=>{
+    const p=prompt("청산 가격을 입력하세요"); if(!p)return;
+    const r=await fetch(`/api/discipline/close/${b.dataset.close}`,{method:"POST",
+      headers:{"content-type":"application/json"},body:JSON.stringify({price:Number(p)})});
+    if(!r.ok){alert((await r.json()).error);} loadDiscipline();});
+  document.querySelectorAll("[data-rev]").forEach(b=>b.onclick=async()=>{
+    const f=confirm("계획(손절/목표)을 지켰습니까?\n확인=지켰다 / 취소=어겼다");
+    const note=prompt("복기 메모 (배운 점 한 줄)")||"";
+    await fetch(`/api/discipline/review/${b.dataset.rev}`,{method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({followed_plan:f,note})});
+    loadDiscipline();});
+}
+$("#d-open").onclick=async()=>{
+  const body={ticker:$("#d-ticker").value,name:$("#d-ticker").value,
+    qty:Number($("#d-qty").value),price:Number($("#d-price").value),
+    stop_loss_pct:Number($("#d-stop").value),target_pct:Number($("#d-target").value),
+    reason:$("#d-reason").value,checked:dScore()};
+  const r=await fetch("/api/discipline/trade",{method:"POST",
+    headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+  if(r.ok){["d-ticker","d-qty","d-price","d-stop","d-target","d-reason"].forEach(i=>$("#"+i).value=""); loadDiscipline();}
+  else{alert("기록 거부: "+(await r.json()).error);}
+};
+
+loadProject(); loadScoreboard(); loadApprovals(); loadRouter(); loadFinance(); loadInvest(); loadDiscipline();
 </script>
 </body>
 </html>
