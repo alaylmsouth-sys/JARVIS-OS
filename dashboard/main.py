@@ -178,7 +178,32 @@ def api_invest_brief(payload: dict) -> JSONResponse:
 @app.get("/api/charts")
 def api_charts(refresh: bool = False) -> JSONResponse:
     from invest.charts import board
-    return JSONResponse(board(refresh=refresh))
+    from datetime import date as _d
+    try:
+        return JSONResponse(board(refresh=refresh))
+    except Exception as e:
+        return JSONResponse({"date": _d.today().isoformat(), "items": [],
+                             "note": f"차트 보드 오류: {e}"})
+
+
+@app.get("/api/detail/{ticker}")
+def api_detail(ticker: str, interval: str = "1d") -> JSONResponse:
+    from invest.detail import detail
+    try:
+        return JSONResponse(detail(ticker, interval))
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
+@app.get("/api/news/{ticker}")
+def api_news(ticker: str, summarize: bool = False) -> JSONResponse:
+    from invest.detail import news, issue_summary
+    try:
+        items = news(ticker)
+        summary = issue_summary(ticker, items) if (summarize and items) else None
+        return JSONResponse({"ok": True, "items": items, "summary": summary})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
 
 
 @app.get("/api/screen/{ticker}")

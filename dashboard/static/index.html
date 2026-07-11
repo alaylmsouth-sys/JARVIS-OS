@@ -110,6 +110,30 @@
     <div class="foot" id="cb-note"></div>
   </section>
 
+  <div id="modal" style="display:none;position:fixed;inset:0;background:rgba(6,10,20,.82);z-index:50;padding:20px;overflow:auto">
+    <div style="max-width:760px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+        <h2 style="margin:0" id="md-title">—</h2>
+        <div>
+          <button id="md-1d" style="padding:4px 12px;font-size:12px">일봉</button>
+          <button id="md-5m" style="padding:4px 12px;font-size:12px">5분봉</button>
+          <button id="md-close" style="padding:4px 12px;font-size:12px;border-color:var(--danger)">✕ 닫기</button>
+        </div>
+      </div>
+      <div id="md-chart" style="margin-top:12px"></div>
+      <div class="qgrid" id="md-ind" style="margin-top:10px"></div>
+      <div class="foot" id="md-note"></div>
+      <div style="margin-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <b style="font-size:13px">최근 이슈</b>
+          <button id="md-ai" style="padding:4px 12px;font-size:12px">🤖 AI 요약</button>
+        </div>
+        <div id="md-news" class="foot" style="margin-top:6px">불러오는 중…</div>
+        <div id="md-summary" class="priority" style="display:none;margin-top:8px;white-space:pre-wrap;font-size:13px"></div>
+      </div>
+    </div>
+  </div>
+
   <section>
     <h2>다음 작업</h2>
     <div id="phases"></div>
@@ -555,13 +579,15 @@ async function loadCharts(refresh=false){
   const wrap=$("#chartboard");
   wrap.innerHTML=`<div class="empty">시세 불러오는 중… (10종목)</div>`;
   const r=await fetch("/api/charts"+(refresh?"?refresh=true":""));
-  const d=await r.json();
-  $("#cb-date").textContent="· "+d.date;
-  $("#cb-note").textContent=d.note;
-  wrap.innerHTML=d.items.map(it=>{
+  let d; try{ d=await r.json(); }catch(e){ wrap.innerHTML=`<div class="empty">서버 응답 오류: ${e}</div>`; return; }
+  $("#cb-date").textContent="· "+(d.date||"");
+  $("#cb-note").textContent=d.note||"";
+  const items=d.items||[];
+  if(!items.length){ wrap.innerHTML=`<div class="empty">${d.note||"데이터 없음"}</div>`; return; }
+  wrap.innerHTML=items.map(it=>{
     if(it.error) return `<div class="q" style="text-align:left"><b style="font-size:13px">${it.name}</b><br><span class="status">조회 실패: ${it.error}</span></div>`;
     const up=(it.change_pct??0)>=0;
-    return `<div class="q" style="text-align:left;padding:10px">
+    return `<div class="q" data-detail="${it.ticker}" data-name="${it.name}" style="text-align:left;padding:10px;cursor:pointer">
       <div style="display:flex;justify-content:space-between;align-items:baseline">
         <b style="font-size:13px">${it.name}</b>
         <span style="font-family:var(--mono);font-size:12px;color:${up?"var(--ok)":"var(--danger)"}">${it.change_pct>=0?"+":""}${it.change_pct??"—"}%</span>
@@ -572,6 +598,75 @@ async function loadCharts(refresh=false){
   }).join("");
 }
 $("#cb-refresh").onclick=()=>loadCharts(true);
+
+// ── 종목 상세 모달 ──
+let mdTicker=null;
+function candleChart(d){
+  const cs=d.candles; if(!cs.length) return "<div class='empty'>데이터 없음</div>";
+  const W=720,H=260,VH=54,pad=6;
+  const hi=Math.max(...cs.map(c=>c.h)), lo=Math.min(...cs.map(c=>c.l)), rng=(hi-lo)||1;
+  const vmax=Math.max(...cs.map(c=>c.v))||1;
+  const bw=W/cs.length;
+  const y=v=>pad+(hi-v)/rng*(H-2*pad);
+  let out="";
+  cs.forEach((c,i)=>{
+    const x=i*bw+bw/2, up=c.c>=c.o, col=up?"#f05650":"#4a90e2";
+    out+=`<line x1="${x}" y1="${y(c.h)}" x2="${x}" y2="${y(c.l)}" stroke="${col}" stroke-width="1"/>`;
+    const top=y(Math.max(c.o,c.c)), bh=Math.max(Math.abs(y(c.o)-y(c.c)),1);
+    out+=`<rect x="${x-bw*0.32}" y="${top}" width="${bw*0.64}" height="${bh}" fill="${col}"/>`;
+    out+=`<rect x="${x-bw*0.32}" y="${H+VH-(c.v/vmax*VH)}" width="${bw*0.64}" height="${c.v/vmax*VH}" fill="${col}" opacity="0.45"/>`;
+  });
+  const maCol={ma5:"#e8edf5",ma20:"#f5b14c",ma120:"#5bc8f5"};
+  for(const [k,series] of Object.entries(d.ma||{})){
+    const pts=series.map((v,i)=>v==null?null:`${(i*bw+bw/2).toFixed(1)},${y(v).toFixed(1)}`).filter(Boolean);
+    if(pts.length>1) out+=`<polyline points="${pts.join(" ")}" fill="none" stroke="${maCol[k]}" stroke-width="1.3" opacity="0.9"/>`;
+  }
+  const legend = d.ma && d.ma.ma5 ? `<div class="status" style="font-size:11px">— <span style="color:#e8edf5">MA5</span> · <span style="color:#f5b14c">MA20</span> · <span style="color:#5bc8f5">MA120</span> · 캔들: 상승 빨강/하락 파랑 · 아래 막대: 거래량</div>` : "";
+  return `<svg viewBox="0 0 ${W} ${H+VH+4}" style="width:100%;background:var(--panel-2);border-radius:8px">${out}</svg>${legend}`;
+}
+async function openDetail(ticker,name,interval="1d"){
+  mdTicker=ticker;
+  $("#modal").style.display="block";
+  $("#md-title").textContent=`${name} (${ticker})`;
+  $("#md-chart").innerHTML=`<div class="empty">차트 불러오는 중…</div>`;
+  $("#md-ind").innerHTML=""; $("#md-summary").style.display="none";
+  const r=await fetch(`/api/detail/${encodeURIComponent(ticker)}?interval=${interval}`);
+  const d=await r.json();
+  if(!r.ok){ $("#md-chart").innerHTML=`<div class="empty">실패: ${d.error}</div>`; return; }
+  $("#md-chart").innerHTML=candleChart(d);
+  $("#md-note").textContent=d.note||"";
+  const ind=d.indicators;
+  $("#md-ind").innerHTML = ind ? `
+    <div class="q"><b>${ind.price.toLocaleString("ko-KR")}</b><span>현재가 ${d.currency}</span></div>
+    <div class="q"><b>${ind.rsi14??"—"}</b><span>RSI(14)</span></div>
+    <div class="q"><b>${ind.macd?ind.macd.hist:"—"}</b><span>MACD 히스토그램</span></div>
+    <div class="q"><b>${ind.volume_ratio_20d??"—"}배</b><span>거래량/20일평균</span></div>
+    <div class="q"><b>${ind.pos_52w_pct??"—"}%</b><span>52주 위치 (저:${ind.low_52w.toLocaleString("ko-KR")} 고:${ind.high_52w.toLocaleString("ko-KR")})</span></div>` : "";
+  loadNews(ticker);
+}
+async function loadNews(ticker){
+  $("#md-news").textContent="뉴스 불러오는 중…";
+  const r=await fetch(`/api/news/${encodeURIComponent(ticker)}`);
+  const d=await r.json();
+  if(!d.ok){ $("#md-news").textContent="뉴스 조회 실패: "+d.error; return; }
+  $("#md-news").innerHTML = d.items.length ? d.items.map(n=>
+    `<div>· <a href="${n.link}" target="_blank">${n.title}</a> <span class="status">${n.publisher}</span></div>`).join("")
+    : "관련 헤드라인이 없습니다 (한국 종목은 야후 뉴스가 적을 수 있음)";
+}
+$("#md-ai").onclick=async()=>{
+  const out=$("#md-summary"); out.style.display="block"; out.textContent="AI 요약 중… (실제 헤드라인 기반)";
+  const r=await fetch(`/api/news/${encodeURIComponent(mdTicker)}?summarize=true`);
+  const d=await r.json();
+  out.textContent = d.ok ? (d.summary||"요약할 헤드라인 없음") : "요약 실패: "+d.error;
+};
+$("#md-close").onclick=()=>$("#modal").style.display="none";
+$("#md-1d").onclick=()=>openDetail(mdTicker,$("#md-title").textContent.split(" (")[0],"1d");
+$("#md-5m").onclick=()=>openDetail(mdTicker,$("#md-title").textContent.split(" (")[0],"5m");
+$("#modal").onclick=e=>{if(e.target.id==="modal")$("#modal").style.display="none";};
+document.addEventListener("click",e=>{
+  const card=e.target.closest("[data-detail]");
+  if(card) openDetail(card.dataset.detail, card.dataset.name);
+});
 
 loadProject(); loadScoreboard(); loadApprovals(); loadRouter(); loadFinance(); loadInvest(); loadDiscipline(); loadCharts();
 </script>
