@@ -254,7 +254,8 @@
   </section>
 
   <section class="full">
-    <h2>CEO 결재함 · 승인 대기</h2>
+    <h2>CEO 결재함 · 승인 대기
+      <button id="ap-cleanup" style="float:right;padding:3px 10px;font-size:12px">🧹 처리 완료 정리</button></h2>
     <div id="approvals"></div>
     <div class="warn">원칙: JARVIS는 절대 혼자 업로드하지 않습니다. 이 결재함에서 승인된 항목만 업로드됩니다.</div>
   </section>
@@ -320,17 +321,22 @@ async function loadApprovals(){
       </div>` : "";
     const card = document.createElement("div"); card.className="card";
     let right;
+    const del = `<button data-del-item="${it.id}" style="padding:3px 9px;font-size:12px;margin-top:6px">🗑 삭제</button>`;
+    const reset = `<button data-id="${it.id}" data-act="reset" style="padding:3px 9px;font-size:12px;margin-top:6px">↩ 대기로</button>`;
     if(it.status==="pending"){
-      right = `<button class="stamp" data-id="${it.id}" data-act="approve">승 인</button>`;
+      right = `<div style="text-align:center"><button class="stamp" data-id="${it.id}" data-act="approve">승 인</button><div>${del}</div></div>`;
     } else if(it.status==="approved"){
       right = `<div style="text-align:center"><div class="stamped">승 인</div>
         <button data-upload="${it.id}" style="margin-top:8px;border-color:var(--danger);color:var(--danger)">📤 유튜브 업로드</button>
-        <div class="status" style="font-size:10px;margin-top:4px">비공개(private)로 업로드됩니다</div></div>`;
+        <div class="status" style="font-size:10px;margin-top:4px">비공개(private)로 업로드됩니다</div>
+        <div>${reset}${del}</div></div>`;
     } else if(it.status==="uploaded"){
       right = `<div style="text-align:center"><div class="stamped" style="border-color:var(--ok);color:var(--ok)">업로드</div>
-        <a href="${it.youtube?.url}" target="_blank" style="display:block;margin-top:6px;font-size:12px">${it.youtube?.url||""}</a></div>`;
+        <a href="${it.youtube?.url}" target="_blank" style="display:block;margin-top:6px;font-size:12px">${it.youtube?.url||""}</a>
+        <div>${del}</div></div>`;
     } else {
-      right = `<span class="badge ${it.status}">${it.status==="rejected"?"반려":"재생성 요청"}</span>`;
+      right = `<div style="text-align:center"><span class="badge ${it.status}">${it.status==="rejected"?"반려":"재생성 요청"}</span>
+        <div>${reset}${del}</div></div>`;
     }
     card.innerHTML = `
       <div class="row">
@@ -355,6 +361,13 @@ async function loadApprovals(){
   wrap.querySelectorAll("button[data-act]").forEach(b=>{
     b.onclick=async()=>{
       await fetch(`/api/approvals/${b.dataset.id}/${b.dataset.act}`,{method:"POST"});
+      loadApprovals();
+    };
+  });
+  wrap.querySelectorAll("button[data-del-item]").forEach(b=>{
+    b.onclick=async()=>{
+      if(!confirm("이 항목과 영상 파일을 삭제할까요? (되돌릴 수 없음)")) return;
+      await fetch(`/api/approvals/${b.dataset.delItem}`,{method:"DELETE"});
       loadApprovals();
     };
   });
@@ -597,6 +610,13 @@ async function loadCharts(refresh=false){
     </div>`;
   }).join("");
 }
+$("#ap-cleanup").onclick=async()=>{
+  if(!confirm("업로드 완료·반려·재생성 항목을 모두 정리할까요? (대기/승인 항목은 유지, 영상 파일도 삭제)")) return;
+  const r=await fetch("/api/approvals/cleanup",{method:"POST"});
+  const d=await r.json();
+  alert(`${d.removed}개 항목 정리 완료`);
+  loadApprovals();
+};
 $("#cb-refresh").onclick=()=>loadCharts(true);
 
 // ── 종목 상세 모달 ──

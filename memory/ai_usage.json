@@ -241,6 +241,17 @@
       "cost_usd": null,
       "cost_krw": null,
       "dry_run": false
+    },
+    {
+      "time": "2026-07-11T05:09:20+00:00",
+      "task": "issue_brief",
+      "provider": "gemini",
+      "model": "gemini-3-flash-preview",
+      "input_tokens": 311,
+      "output_tokens": 157,
+      "cost_usd": null,
+      "cost_krw": null,
+      "dry_run": false
     }
   ]
 }

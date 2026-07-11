@@ -275,17 +275,51 @@ def api_upload(item_id: str, payload: dict) -> JSONResponse:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
 
 
+@app.delete("/api/approvals/{item_id}")
+def api_approval_delete(item_id: str) -> JSONResponse:
+    """결재 항목 삭제 (영상 산출물 폴더도 함께 삭제해 저장공간 확보)."""
+    import shutil
+    data = _read_json("approval_queue.json")
+    before = len(data["items"])
+    data["items"] = [i for i in data["items"] if i["id"] != item_id]
+    if len(data["items"]) == before:
+        return JSONResponse({"ok": False, "error": "항목 없음"}, status_code=404)
+    with open(MEMORY / "approval_queue.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    job_dir = VIDEO_OUT / item_id
+    if job_dir.is_dir() and job_dir.resolve().parent == VIDEO_OUT.resolve():
+        shutil.rmtree(job_dir, ignore_errors=True)
+    return JSONResponse({"ok": True})
+
+
+@app.post("/api/approvals/cleanup")
+def api_approval_cleanup() -> JSONResponse:
+    """처리 끝난 항목(업로드됨/반려/재생성) 일괄 정리. 대기·승인 항목은 유지."""
+    import shutil
+    data = _read_json("approval_queue.json")
+    done = [i for i in data["items"] if i.get("status") in ("uploaded", "rejected", "retry")]
+    data["items"] = [i for i in data["items"] if i not in done]
+    with open(MEMORY / "approval_queue.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    for i in done:
+        job_dir = VIDEO_OUT / i["id"]
+        if job_dir.is_dir() and job_dir.resolve().parent == VIDEO_OUT.resolve():
+            shutil.rmtree(job_dir, ignore_errors=True)
+    return JSONResponse({"ok": True, "removed": len(done)})
+
+
 @app.post("/api/approvals/{item_id}/{action}")
 def api_approval_action(item_id: str, action: str) -> JSONResponse:
     """승인 처리. action: approve | reject | retry
     ⚠ 핵심 원칙: 여기서 '승인' 표시만 한다. 실제 업로드는
     3단계(영상 파이프라인)에서도 이 승인 없이는 절대 실행되지 않는다."""
-    if action not in {"approve", "reject", "retry"}:
+    if action not in {"approve", "reject", "retry", "reset"}:
         return JSONResponse({"ok": False, "error": "invalid action"}, status_code=400)
     data = _read_json("approval_queue.json")
     for item in data["items"]:
         if item["id"] == item_id:
-            item["status"] = {"approve": "approved", "reject": "rejected", "retry": "retry"}[action]
+            item["status"] = {"approve": "approved", "reject": "rejected",
+                              "retry": "retry", "reset": "pending"}[action]
             with open(MEMORY / "approval_queue.json", "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             return JSONResponse({"ok": True, "item": item})
