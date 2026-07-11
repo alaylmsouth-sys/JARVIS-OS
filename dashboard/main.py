@@ -175,6 +175,12 @@ def api_invest_brief(payload: dict) -> JSONResponse:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
 
 
+@app.get("/api/charts")
+def api_charts(refresh: bool = False) -> JSONResponse:
+    from invest.charts import board
+    return JSONResponse(board(refresh=refresh))
+
+
 @app.get("/api/screen/{ticker}")
 def api_screen(ticker: str) -> JSONResponse:
     """자동 분석: 지표 계산 + 체크리스트 자동 채점 (추천 아님)."""
