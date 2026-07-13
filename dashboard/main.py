@@ -175,6 +175,29 @@ def api_invest_brief(payload: dict) -> JSONResponse:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
 
 
+# ── 영상 성과 (10단계) ────────────────────────────────
+
+@app.get("/api/performance")
+def api_performance() -> JSONResponse:
+    from video.analytics import summary, sync_from_queue
+    sync_from_queue()  # 파일 읽기만 — 네트워크 호출 없음
+    return JSONResponse(summary())
+
+
+@app.post("/api/performance/refresh")
+def api_performance_refresh() -> JSONResponse:
+    """사용자가 [↻ 갱신]을 누를 때만 유튜브 API 호출 (원칙: 자동 갱신 없음)."""
+    from video.analytics import snapshot, update_scoreboard
+    try:
+        r = snapshot()
+        update_scoreboard()
+        return JSONResponse(r)
+    except PermissionError as e:   # 스코프 부족 → 재인증 안내
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=403)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
 @app.get("/api/charts")
 def api_charts(refresh: bool = False) -> JSONResponse:
     from invest.charts import board

@@ -96,8 +96,11 @@ def upload(item_id: str, privacy: str = "private") -> dict:
     url = f"https://youtu.be/{video_id}"
 
     # 3) 결재함 기록 갱신
+    from datetime import datetime, timezone
     item["status"] = "uploaded"
-    item["youtube"] = {"video_id": video_id, "url": url, "privacy": privacy}
+    item["youtube"] = {"video_id": video_id, "url": url, "privacy": privacy,
+                       "uploaded_at": datetime.now(timezone.utc)
+                       .astimezone().strftime("%Y-%m-%d %H:%M")}
     _save_queue(q)
 
     # 4) AI PM 연동: 첫 업로드 성공 → t13 완료

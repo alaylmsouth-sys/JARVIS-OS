@@ -25,7 +25,10 @@ sys.path.insert(0, str(ROOT))
 from security.keys import get_key  # noqa: E402
 
 TOKEN_FILE = ROOT / "memory" / "youtube_token.json"
-SCOPE = "https://www.googleapis.com/auth/youtube.upload"
+# upload: 업로드(6단계) / readonly: 통계 조회(10단계 성과 분석)
+# ⚠ 스코프가 바뀌면 기존 토큰으로는 통계 조회가 403 — 재인증 1회 필요.
+SCOPE = ("https://www.googleapis.com/auth/youtube.upload "
+         "https://www.googleapis.com/auth/youtube.readonly")
 
 
 def _client() -> tuple[str, str]:

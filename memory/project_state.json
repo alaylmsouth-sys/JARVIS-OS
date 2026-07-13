@@ -1,6 +1,6 @@
 {
   "project": "JARVIS OS",
-  "version": "0.1.0",
+  "version": "0.10.0",
   "phases": [
     {
       "id": "phase-1",
@@ -129,6 +129,76 @@
           "id": "t20",
           "title": "자동 분석 스크리너",
           "done": true
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "name": "6단계 · 유튜브 업로드",
+      "tasks": [
+        {
+          "id": "t21",
+          "title": "OAuth 인증 + 업로더 + 결재함 연동",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "phase-7",
+      "name": "7단계 · 음성(TTS)",
+      "tasks": [
+        {
+          "id": "t22",
+          "title": "Voice AI 연결",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "phase-8",
+      "name": "8단계 · 매매 규율",
+      "tasks": [
+        {
+          "id": "t23",
+          "title": "체크리스트/일지/규율 점수",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "phase-9",
+      "name": "9단계 · 스크리너 + 차트 보드",
+      "tasks": [
+        {
+          "id": "t24",
+          "title": "자동 분석 + 주요 종목 차트",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "phase-10",
+      "name": "10단계 · 영상 성과 분석",
+      "tasks": [
+        {
+          "id": "t25",
+          "title": "설계 문서 (docs/12)",
+          "done": true
+        },
+        {
+          "id": "t26",
+          "title": "analytics.py — 스냅샷/요약/스코어보드",
+          "done": true
+        },
+        {
+          "id": "t27",
+          "title": "대시보드 영상 성과 섹션",
+          "done": true
+        },
+        {
+          "id": "t28",
+          "title": "실제 유튜브 API 검증 (재인증 후)",
+          "done": false
         }
       ]
     }

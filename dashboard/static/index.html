@@ -264,6 +264,16 @@
     <div class="warn">원칙: JARVIS는 절대 혼자 업로드하지 않습니다. 이 결재함에서 승인된 항목만 업로드됩니다.</div>
   </section>
 
+  <section class="full">
+    <h2>🎬 영상 성과 · 실측
+      <button id="perf-refresh" style="float:right;padding:3px 10px;font-size:12px">↻ 갱신</button></h2>
+    <table>
+      <thead><tr><th>영상</th><th>업로드</th><th>조회수</th><th>좋아요</th><th>댓글</th><th>마지막 확인</th></tr></thead>
+      <tbody id="perf-rows"></tbody>
+    </table>
+    <div class="foot" id="perf-note">갱신 버튼을 누를 때만 유튜브 API를 호출합니다 (자동 갱신 없음).</div>
+  </section>
+
 </div>
 
 <script>
@@ -692,7 +702,37 @@ document.addEventListener("click",e=>{
   if(card) openDetail(card.dataset.detail, card.dataset.name);
 });
 
-loadProject(); loadScoreboard(); loadApprovals(); loadRouter(); loadFinance(); loadInvest(); loadDiscipline(); loadCharts();
+async function loadPerformance(){
+  const r = await fetch("/api/performance"); const d = await r.json();
+  const rows = $("#perf-rows");
+  if(!d.videos.length){
+    rows.innerHTML = `<tr><td colspan="6" class="empty">업로드된 영상이 없습니다. 결재함에서 승인 → 업로드하면 여기서 성과를 추적합니다.</td></tr>`;
+    return;
+  }
+  const n = v => v===null||v===undefined ? "—" : v.toLocaleString("ko-KR");
+  rows.innerHTML = d.videos.map(v=>{
+    const s = v.latest || {};
+    const delta = v.views_delta===null||v.views_delta===undefined ? "" :
+      ` <span style="color:${v.views_delta>=0?"var(--good,#4ade80)":"var(--bad,#f87171)"}">(${v.views_delta>=0?"+":""}${v.views_delta.toLocaleString("ko-KR")})</span>`;
+    return `<tr><td><a href="${v.url}" target="_blank">${v.title}</a></td>
+      <td>${v.uploaded_at||"—"}</td>
+      <td>${n(s.views)}${delta}</td><td>${n(s.likes)}</td><td>${n(s.comments)}</td>
+      <td class="status">${s.at||"미조회"}</td></tr>`;
+  }).join("");
+}
+$("#perf-refresh").onclick = async ()=>{
+  const note = $("#perf-note"); note.textContent = "유튜브에서 최신 통계 조회 중…";
+  const r = await fetch("/api/performance/refresh",{method:"POST"});
+  const d = await r.json();
+  if(d.ok){
+    note.textContent = d.note || `갱신 완료 · ${d.updated}건 (${d.at})`;
+    loadPerformance(); loadScoreboard();
+  }else{
+    note.textContent = "⚠ " + d.error;   // 403이면 재인증 명령어가 그대로 표시됨
+  }
+};
+
+loadProject(); loadScoreboard(); loadApprovals(); loadRouter(); loadFinance(); loadInvest(); loadDiscipline(); loadCharts(); loadPerformance();
 </script>
 </body>
 </html>
