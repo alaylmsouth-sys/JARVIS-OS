@@ -268,10 +268,25 @@
     <h2>🎬 영상 성과 · 실측
       <button id="perf-refresh" style="float:right;padding:3px 10px;font-size:12px">↻ 갱신</button></h2>
     <table>
-      <thead><tr><th>영상</th><th>업로드</th><th>조회수</th><th>좋아요</th><th>댓글</th><th>마지막 확인</th></tr></thead>
+      <thead><tr><th>영상</th><th>업로드</th><th>조회수</th><th>좋아요</th><th>댓글</th><th>평균시청</th><th>마지막 확인</th></tr></thead>
       <tbody id="perf-rows"></tbody>
     </table>
-    <div class="foot" id="perf-note">갱신 버튼을 누를 때만 유튜브 API를 호출합니다 (자동 갱신 없음).</div>
+    <div class="foot" id="perf-note">갱신 버튼을 누를 때만 유튜브 API를 호출합니다 (자동 갱신 없음). CTR/노출수는 공개 API 미제공(Studio에서 확인).</div>
+  </section>
+
+  <section class="full">
+    <h2>🤖 AI 관리센터</h2>
+    <table>
+      <thead><tr><th>역할</th><th>배정 AI</th><th>키</th><th>호출(실)</th><th>토큰</th><th>비용</th><th>마지막 호출</th></tr></thead>
+      <tbody id="ai-rows"></tbody>
+    </table>
+    <div id="ai-warnings" class="foot"></div>
+  </section>
+
+  <section class="full">
+    <h2>🛡 시스템센터
+      <button id="health-run" style="float:right;padding:3px 10px;font-size:12px">🔍 점검 실행</button></h2>
+    <ul id="health-list" class="plain"><li class="empty">[점검 실행]을 누르면 환경·데이터·백업 상태를 확인합니다.</li></ul>
   </section>
 
 </div>
@@ -706,10 +721,11 @@ async function loadPerformance(){
   const r = await fetch("/api/performance"); const d = await r.json();
   const rows = $("#perf-rows");
   if(!d.videos.length){
-    rows.innerHTML = `<tr><td colspan="6" class="empty">업로드된 영상이 없습니다. 결재함에서 승인 → 업로드하면 여기서 성과를 추적합니다.</td></tr>`;
+    rows.innerHTML = `<tr><td colspan="7" class="empty">업로드된 영상이 없습니다. 결재함에서 승인 → 업로드하면 여기서 성과를 추적합니다.</td></tr>`;
     return;
   }
   const n = v => v===null||v===undefined ? "—" : v.toLocaleString("ko-KR");
+  const sec = v => v===null||v===undefined ? "—" : `${Math.floor(v/60)}:${String(Math.round(v%60)).padStart(2,"0")}`;
   rows.innerHTML = d.videos.map(v=>{
     const s = v.latest || {};
     const delta = v.views_delta===null||v.views_delta===undefined ? "" :
@@ -717,9 +733,34 @@ async function loadPerformance(){
     return `<tr><td><a href="${v.url}" target="_blank">${v.title}</a></td>
       <td>${v.uploaded_at||"—"}</td>
       <td>${n(s.views)}${delta}</td><td>${n(s.likes)}</td><td>${n(s.comments)}</td>
+      <td>${sec(s.avg_view_sec)}</td>
       <td class="status">${s.at||"미조회"}</td></tr>`;
   }).join("");
 }
+
+async function loadAiCenter(){
+  const d = await (await fetch("/api/ai-center")).json();
+  const key = k => k===true ? "✅" : k===false ? "❌ 없음" : "—";
+  $("#ai-rows").innerHTML = d.routes.map(r=>`<tr>
+    <td>${r.task}<div class="status">${r.description}</div></td>
+    <td>${r.provider||"—"} / ${r.model||"—"}</td>
+    <td>${key(r.key_ok)}</td>
+    <td>${r.calls} (${r.real_calls})</td>
+    <td>${r.tokens.toLocaleString("ko-KR")}</td>
+    <td>${r.cost_krw!==null ? "₩"+r.cost_krw.toLocaleString("ko-KR") : "미산정"}${r.unpriced?` <span class="status">(${r.unpriced}건)</span>`:""}</td>
+    <td class="status">${r.last_call ? r.last_call.slice(0,16).replace("T"," ") : "—"}</td></tr>`).join("");
+  $("#ai-warnings").innerHTML = d.warnings.length
+    ? "⚠ " + d.warnings.join("<br>⚠ ") : "경고 없음 — 모든 배정 정상";
+}
+
+$("#health-run").onclick = async ()=>{
+  $("#health-list").innerHTML = `<li class="empty">점검 중…</li>`;
+  const d = await (await fetch("/api/health")).json();
+  const icon = {ok:"✅", warn:"⚠", fail:"❌"};
+  $("#health-list").innerHTML = d.checks.map(c=>
+    `<li>${icon[c.level]} <b>${c.name}</b> — ${c.detail}</li>`).join("");
+};
+
 $("#perf-refresh").onclick = async ()=>{
   const note = $("#perf-note"); note.textContent = "유튜브에서 최신 통계 조회 중…";
   const r = await fetch("/api/performance/refresh",{method:"POST"});
@@ -732,7 +773,7 @@ $("#perf-refresh").onclick = async ()=>{
   }
 };
 
-loadProject(); loadScoreboard(); loadApprovals(); loadRouter(); loadFinance(); loadInvest(); loadDiscipline(); loadCharts(); loadPerformance();
+loadProject(); loadScoreboard(); loadApprovals(); loadRouter(); loadFinance(); loadInvest(); loadDiscipline(); loadCharts(); loadPerformance(); loadAiCenter();
 </script>
 </body>
 </html>

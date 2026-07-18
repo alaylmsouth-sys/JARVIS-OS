@@ -1,0 +1,11 @@
+{
+  "note": "아직 실측 데이터가 없어 초기값입니다. AI Router가 연결되면 실제 성능으로 갱신됩니다.",
+  "agents": [
+    { "name": "Writer AI",   "role": "대본",      "score": null, "status": "대기 (미연결)" },
+    { "name": "Video AI",    "role": "영상",      "score": null, "status": "대기 (미연결)" },
+    { "name": "Voice AI",    "role": "음성",      "score": null, "status": "대기 (미연결)" },
+    { "name": "Editor AI",   "role": "편집",      "score": null, "status": "대기 (미연결)" },
+    { "name": "Finance AI",  "role": "재무",      "score": null, "status": "대기 (미연결)" },
+    { "name": "Watchdog AI", "role": "감시/보안", "score": null, "status": "대기 (미연결)" }
+  ]
+}

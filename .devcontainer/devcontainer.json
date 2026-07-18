@@ -2,5 +2,18 @@
   "name": "JARVIS-OS",
   "image": "mcr.microsoft.com/devcontainers/universal:2",
   "postCreateCommand": "sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-noto-cjk && pip install -q -r requirements.txt",
-  "forwardPorts": [8000]
+  "forwardPorts": [
+    8000
+  ],
+  "customizations": {
+    "codespaces": {
+      "repositories": {
+        "alaylmsouth-sys/JARVIS-DATA": {
+          "permissions": {
+            "contents": "write"
+          }
+        }
+      }
+    }
+  }
 }

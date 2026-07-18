@@ -97,28 +97,64 @@ def _api_fetch(video_ids: list[str]) -> dict[str, dict]:
     return out
 
 
-def snapshot(fetcher=None) -> dict:
+def _api_fetch_watch(video_ids: list[str]) -> dict[str, dict]:
+    """Analytics API v2 — {video_id: {watch_min, avg_view_sec}}.
+    ⚠ CTR/노출수는 공개 API가 제공하지 않는다(Studio 전용) — 지어내지 않는다."""
+    import requests
+    from security.youtube_auth import access_token
+    r = requests.get(
+        "https://youtubeanalytics.googleapis.com/v2/reports",
+        params={"ids": "channel==MINE", "startDate": "2020-01-01",
+                "endDate": datetime.now().strftime("%Y-%m-%d"),
+                "metrics": "estimatedMinutesWatched,averageViewDuration",
+                "dimensions": "video",
+                "filters": "video==" + ",".join(video_ids)},
+        headers={"Authorization": f"Bearer {access_token()}"}, timeout=30)
+    if r.status_code != 200:   # 스코프/미활성화 등 — 호출부에서 note로 처리
+        raise RuntimeError(f"시청시간 조회 실패 {r.status_code}: {r.text[:200]}")
+    out: dict[str, dict] = {}
+    for row in r.json().get("rows", []) or []:
+        out[row[0]] = {"watch_min": row[1], "avg_view_sec": row[2]}
+    return out
+
+
+def snapshot(fetcher=None, watch_fetcher=None) -> dict:
     """등록된 전 영상의 통계를 1회 조회해 스냅샷 추가.
-    fetcher(video_ids)->dict 주입 가능 (테스트용, 기본은 실제 API)."""
+    fetcher(video_ids)->dict 주입 가능 (테스트용, 기본은 실제 API).
+    시청시간은 부가 정보 — 실패해도 기본 통계 스냅샷은 저장된다."""
     sync_from_queue()
     data = _load()
     if not data["videos"]:
         return {"ok": True, "updated": 0,
                 "note": "업로드된 영상이 없습니다. 결재함에서 승인 → 업로드 후 다시 시도하세요."}
+    ids = [v["video_id"] for v in data["videos"]]
     fetch = fetcher or _api_fetch
-    stats = fetch([v["video_id"] for v in data["videos"]])
+    stats = fetch(ids)
+    watch, watch_note = {}, None
+    try:
+        watch = (watch_fetcher or _api_fetch_watch)(ids)
+    except Exception as e:      # 시청시간은 없으면 없는 대로 — None으로 정직하게
+        watch_note = f"시청시간 미조회 ({e})"
     at, updated, missing = _now(), 0, []
     for v in data["videos"]:
         got = stats.get(v["video_id"])
         if got is None:            # API 응답에 없음(삭제/비공개 등) — 사실대로 기록
             missing.append(v["video_id"])
             continue
-        v["snapshots"].append({"at": at, **got})
+        w = watch.get(v["video_id"], {})
+        v["snapshots"].append({"at": at, **got,
+                               "watch_min": w.get("watch_min"),
+                               "avg_view_sec": w.get("avg_view_sec")})
         updated += 1
     _save(data)
     result = {"ok": True, "updated": updated, "at": at}
+    notes = []
     if missing:
-        result["note"] = f"조회되지 않은 영상 {len(missing)}건 (삭제/권한 등): {missing}"
+        notes.append(f"조회되지 않은 영상 {len(missing)}건 (삭제/권한 등): {missing}")
+    if watch_note:
+        notes.append(watch_note)
+    if notes:
+        result["note"] = " / ".join(notes)
     return result
 
 

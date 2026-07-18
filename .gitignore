@@ -3,4 +3,7 @@ __pycache__/
 *.pyc
 nohup.out
 video/output/
+
+# 11단계: 개인 데이터는 git에 올리지 않는다 (템플릿은 memory/templates/에 유지)
+memory/*.json
 memory/youtube_token.json

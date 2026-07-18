@@ -17,6 +17,12 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from brain import project_manager as pm  # noqa: E402
+from brain.bootstrap import ensure_memory  # noqa: E402
+
+# 11단계: memory/*.json이 없으면 템플릿에서 생성 (기존 파일은 절대 덮어쓰지 않음)
+_created = ensure_memory()
+if _created:
+    print(f"[bootstrap] memory 초기화: {', '.join(_created)}")
 
 MEMORY = ROOT / "memory"
 STATIC = Path(__file__).resolve().parent / "static"
@@ -173,6 +179,20 @@ def api_invest_brief(payload: dict) -> JSONResponse:
         return JSONResponse({"ok": True, "brief": text})
     except Exception as e:  # 키 미설정/모델 오류 등을 화면에 전달
         return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
+# ── AI 관리센터 (12단계) / 시스템센터 (13단계) ──────────
+
+@app.get("/api/ai-center")
+def api_ai_center() -> JSONResponse:
+    from agents.manager import status
+    return JSONResponse(status())
+
+
+@app.get("/api/health")
+def api_health() -> JSONResponse:
+    from security.health import run_checks
+    return JSONResponse({"checks": run_checks()})
 
 
 # ── 영상 성과 (10단계) ────────────────────────────────
