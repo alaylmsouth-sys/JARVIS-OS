@@ -46,7 +46,7 @@
 
   .section{width:fit-content; max-width:100%; background:#f1efe9; border-left:4px solid var(--green); border-radius:6px; padding:7px 14px; font-weight:700; font-size:14.5px; margin:26px 0 6px;}
   .vnum{font-weight:700; font-size:16px; margin:22px 0 8px; color:#2f2a3a;}
-  .vtext{background:var(--green-soft); border:1px solid var(--green-line); border-radius:10px; padding:14px 16px; font-size:16.5px; line-height:1.85; word-break:keep-all;}
+  .vtext{background:var(--green-soft); border:1px solid var(--green-line); border-radius:10px; padding:14px 16px; font-size:16.5px; line-height:1.85; word-break:keep-all; white-space:pre-wrap;}
   .vtext.blurred{filter:blur(6px); cursor:pointer;}
   .vtext.reveal-hint{cursor:pointer;}
   textarea.ans{width:100%; min-height:96px; margin-top:10px; background:#faf7f0; border:1px solid var(--line); border-radius:10px; padding:13px 15px; font-size:16px; line-height:1.8; font-family:inherit; resize:vertical; color:var(--ink);}
@@ -302,7 +302,7 @@ function checkOne(ch,v){
 }
 function checkBlank(ch,v){
   const correct = BIBLE[ch][v-1];
-  const words = correct.split(" ");
+  const words = correct.trim().split(/\s+/);
   const inputs = document.querySelectorAll('input[data-bk="'+ch+"-"+v+'"]');
   let all = true, parts = words.slice();
   inputs.forEach(inp=>{
@@ -403,7 +403,7 @@ function removeWrong(i){ state.wrongs.splice(i,1); save(); render(); }
 /* ===================== 렌더링 ===================== */
 function blanksFor(ch,v){
   // 3단어마다 하나씩 빈칸 (절 번호로 시작 위치를 바꿔 다양화)
-  const words = BIBLE[ch][v-1].split(" ");
+  const words = BIBLE[ch][v-1].trim().split(/\s+/);
   const start = v % 3;
   const set = new Set();
   for(let i=start;i<words.length;i+=3) set.add(i);
@@ -474,7 +474,14 @@ function clearVerseRecords(ch,v){
 function saveEdit(ch,v){
   const ta = document.getElementById("edit-"+ch+"-"+v);
   if(!ta) return;
-  const val = ta.value.replace(/\s+/g," ").trim();
+  // 엔터로 넣은 줄바꿈은 그대로 보존. 각 줄 안의 공백/탭만 한 칸으로 정리.
+  const val = ta.value
+    .replace(/\r\n?/g,"\n")                 // 개행 문자 통일
+    .split("\n")
+    .map(line => line.replace(/[ \t]+/g," ").trim())  // 줄 안의 여분 공백만 정리
+    .join("\n")
+    .replace(/\n{3,}/g,"\n\n")              // 빈 줄은 최대 1줄까지만
+    .replace(/^\n+|\n+$/g,"");              // 앞뒤 빈 줄 제거
   if(!val){ alert("본문이 비어 있습니다."); return; }
   const kk = ch+":"+v;
   if(val === ORIGINAL[ch][v-1]){
@@ -507,7 +514,7 @@ function renderQuiz(){
   // 본문 교정 토글
   html += '<div class="editrow"><button class="toolbtn'+(state.editMode?' on':'')+'" onclick="toggleEditMode()">✎ 본문 교정 '+(state.editMode?'끄기':'하기')+'</button>';
   if(state.editMode){
-    html += '<span class="edithint">틀린 성구의 <b>✎ 수정</b>을 눌러 고친 뒤 <b>저장</b>하세요. 고친 내용은 이 브라우저에 저장되어 모든 모드에 반영됩니다.</span>';
+    html += '<span class="edithint">틀린 성구의 <b>✎ 수정</b>을 눌러 고친 뒤 <b>저장</b>하세요. <b>Enter</b>로 줄을 바꾸면 그 줄바꿈이 그대로 저장·표시됩니다. 고친 내용은 이 브라우저에 저장되어 모든 모드에 반영됩니다.</span>';
   }
   html += '</div>';
 
@@ -600,7 +607,7 @@ function renderQuiz(){
     }
     if(state.mode==="blank"){
       const inputs = document.querySelectorAll('input[data-bk="'+ch+'-'+v+'"]');
-      const words = BIBLE[ch][v-1].split(" ");
+      const words = BIBLE[ch][v-1].trim().split(/\s+/);
       inputs.forEach(inp=>{
         const good = norm(inp.value)===norm(words[+inp.dataset.idx]);
         inp.classList.toggle("okb", good && inp.value!=="");
