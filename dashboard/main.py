@@ -46,6 +46,12 @@ def index() -> FileResponse:
     return FileResponse(STATIC / "index.html")
 
 
+@app.get("/revelation")
+def revelation() -> FileResponse:
+    """요한계시록 암송/학습 페이지 (본문 교정 기능 포함)."""
+    return FileResponse(STATIC / "revelation.html")
+
+
 @app.get("/api/project")
 def api_project() -> JSONResponse:
     return JSONResponse({"progress": pm.progress(), "priority": pm.today_priority()})
