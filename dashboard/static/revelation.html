@@ -45,7 +45,12 @@
   .chapsub{color:var(--sub); font-size:15px; margin-bottom:8px;}
 
   .section{width:fit-content; max-width:100%; background:#f1efe9; border-left:4px solid var(--green); border-radius:6px; padding:7px 14px; font-weight:700; font-size:14.5px; margin:26px 0 6px;}
-  .vnum{font-weight:700; font-size:16px; margin:22px 0 8px; color:#2f2a3a;}
+  .vnum{font-weight:700; font-size:16px; color:#2f2a3a; white-space:nowrap; flex-shrink:0;}
+  .vrow{display:flex; align-items:center; gap:10px; margin:22px 0 8px;}
+  .memo{flex:1; min-width:0; max-width:420px; border:1px solid var(--line); background:#fffdf9; border-radius:8px; padding:7px 11px; font-size:14px; font-family:inherit; color:var(--ink); transition:border-color .15s, box-shadow .15s;}
+  .memo::placeholder{color:#bcb6a8;}
+  .memo:focus{outline:none; border-color:var(--green); box-shadow:0 0 0 2px var(--green-soft);}
+  .memo.has{border-color:var(--gold); background:#fffaf0;}
   .vtext{background:var(--green-soft); border:1px solid var(--green-line); border-radius:10px; padding:14px 16px; font-size:16.5px; line-height:1.85; word-break:keep-all; white-space:pre-wrap;}
   .vtext.blurred{filter:blur(6px); cursor:pointer;}
   .vtext.reveal-hint{cursor:pointer;}
@@ -216,6 +221,7 @@ let state = {
   orders:{},    // 무작위 순서 캐시
   quarter:"all",// 선택된 분기 (q1~q4, all)
   corrections:{},// "ch:v" -> 사용자가 교정한 본문 (localStorage 저장)
+  memos:{},     // "ch:v" -> 구절 옆 간단 메모 (localStorage 저장)
   editMode:false,// 본문 교정 모드 on/off (비저장, 새로고침 시 꺼짐)
   _editing:null  // 현재 편집 중인 "ch:v" (비저장)
 };
@@ -230,11 +236,12 @@ for(const ch of CHAPTERS){ ORIGINAL[ch] = BIBLE[ch].slice(); }
   state.tab = "quiz";
   state.editMode = false; state._editing = null; // 편집 상태는 항상 초기화
   if(!state.corrections || typeof state.corrections!=="object") state.corrections = {};
+  if(!state.memos || typeof state.memos!=="object") state.memos = {};
   applyCorrections(); // 저장된 교정 본문을 BIBLE에 반영
 })();
 function save(){
-  const {tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections} = state;
-  store.set("rev_app_v1", JSON.stringify({tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections}));
+  const {tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections,memos} = state;
+  store.set("rev_app_v1", JSON.stringify({tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections,memos}));
 }
 // 저장된 교정 본문을 BIBLE에 적용
 function applyCorrections(){
@@ -465,6 +472,13 @@ function startEdit(ch,v){
   if(ta){ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
 }
 function cancelEdit(){ state._editing = null; render(); }
+// 구절 옆 메모 저장 (입력 중 focus 유지 위해 render 하지 않음)
+function saveMemo(ch,v,val){
+  const kk = ch+":"+v;
+  if((val||"").trim()==="") delete state.memos[kk];
+  else state.memos[kk] = val;
+  save();
+}
 // 교정 저장 시 해당 절의 기존 채점 기록/오답은 정리 (본문이 바뀌었으므로)
 function clearVerseRecords(ch,v){
   Object.keys(state.records).forEach(k=>{ if(k.indexOf(ch+":"+v+":")===0) delete state.records[k]; });
@@ -535,7 +549,11 @@ function renderQuiz(){
     const rec = state.records[k];
     const draft = state.drafts[k]||"";
     const corrected = !!state.corrections[ch+":"+v];
-    html += '<div class="vnum">'+ch+':'+v+(corrected?' <span class="corrbadge">교정됨</span>':'')+'</div>';
+    const memo = state.memos[ch+":"+v]||"";
+    html += '<div class="vrow">'+
+      '<div class="vnum">'+ch+':'+v+(corrected?' <span class="corrbadge">교정됨</span>':'')+'</div>'+
+      '<input class="memo'+(memo?' has':'')+'" type="text" data-mk="'+ch+'-'+v+'" value="'+esc(memo)+'" placeholder="메모" aria-label="계 '+ch+':'+v+' 메모" oninput="saveMemo('+ch+','+v+',this.value)">'+
+    '</div>';
 
     // 본문 교정 모드: 모든 모드에서 절 본문을 직접 수정
     if(state.editMode){
