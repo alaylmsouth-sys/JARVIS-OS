@@ -549,10 +549,15 @@ function renderQuiz(){
     const rec = state.records[k];
     const draft = state.drafts[k]||"";
     const corrected = !!state.corrections[ch+":"+v];
+    // 메모칸은 따라쓰기(copy) 탭에서만 표시
+    const showMemo = state.mode==="copy" && !state.editMode;
     const memo = state.memos[ch+":"+v]||"";
+    const memoInput = showMemo
+      ? '<input class="memo'+(memo?' has':'')+'" type="text" data-mk="'+ch+'-'+v+'" value="'+esc(memo)+'" placeholder="메모" aria-label="계 '+ch+':'+v+' 메모" oninput="saveMemo('+ch+','+v+',this.value)">'
+      : '';
     html += '<div class="vrow">'+
       '<div class="vnum">'+ch+':'+v+(corrected?' <span class="corrbadge">교정됨</span>':'')+'</div>'+
-      '<input class="memo'+(memo?' has':'')+'" type="text" data-mk="'+ch+'-'+v+'" value="'+esc(memo)+'" placeholder="메모" aria-label="계 '+ch+':'+v+' 메모" oninput="saveMemo('+ch+','+v+',this.value)">'+
+      memoInput+
     '</div>';
 
     // 본문 교정 모드: 모든 모드에서 절 본문을 직접 수정
