@@ -433,7 +433,13 @@ function taKey(e,ch,v){
   e.preventDefault();
   checkOne(ch,v);
   const nx = document.getElementById("ta-"+ch+"-"+(v+1));
-  if(nx) nx.focus();
+  if(nx) focusCenter(nx);
+}
+// 입력칸에 포커스를 주면서 화면 중앙으로 부드럽게 스크롤
+function focusCenter(el){
+  if(!el) return;
+  el.focus({preventScroll:true});
+  requestAnimationFrame(()=>{ el.scrollIntoView({behavior:"smooth", block:"center"}); });
 }
 function blankKey(e,ch,v){
   if(e.key!=="Enter") return;
@@ -452,10 +458,10 @@ function resetVerse(ch,v){
   save();
   render();
   const ta = document.getElementById("ta-"+ch+"-"+v);
-  if(ta) ta.focus();
+  if(ta) focusCenter(ta);
   else {
     const inp = document.querySelector('input[data-bk="'+ch+'-'+v+'"]');
-    if(inp) inp.focus();
+    if(inp) focusCenter(inp);
   }
 }
 
