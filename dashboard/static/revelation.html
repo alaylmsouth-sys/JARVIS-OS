@@ -51,6 +51,15 @@
   .memo::placeholder{color:#bcb6a8;}
   .memo:focus{outline:none; border-color:var(--green); box-shadow:0 0 0 2px var(--green-soft);}
   .memo.has{border-color:var(--gold); background:#fffaf0;}
+  /* 따라쓰기 한 절씩 보기 */
+  .copyprog{margin-top:16px; font-size:14px; color:var(--sub); font-weight:600;}
+  .copydone{margin-top:10px; background:var(--green-soft); border:1px solid var(--green-line); color:var(--green-dark); border-radius:10px; padding:12px 15px; font-size:15px; font-weight:600;}
+  .copybtns{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  .copybtns .checkbtn,.copybtns .retrybtn{margin-top:10px;}
+  .copynav{display:flex; justify-content:space-between; gap:10px; margin-top:18px; padding-top:14px; border-top:1px solid var(--line);}
+  .navbtn{flex:1; background:#fff; border:1px solid var(--line); border-radius:99px; padding:11px 16px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--ink); transition:background .15s, border-color .15s, color .15s;}
+  .navbtn:hover:not(:disabled){background:var(--green-soft); border-color:var(--green-line); color:var(--green-dark);}
+  .navbtn:disabled{opacity:.4; cursor:default;}
   .vtext{background:var(--green-soft); border:1px solid var(--green-line); border-radius:10px; padding:14px 16px; font-size:16.5px; line-height:1.85; word-break:keep-all; white-space:pre-wrap;}
   .vtext.blurred{filter:blur(6px); cursor:pointer;}
   .vtext.reveal-hint{cursor:pointer;}
@@ -222,6 +231,7 @@ let state = {
   quarter:"all",// 선택된 분기 (q1~q4, all)
   corrections:{},// "ch:v" -> 사용자가 교정한 본문 (localStorage 저장)
   memos:{},     // "ch:v" -> 구절 옆 간단 메모 (localStorage 저장)
+  copyPos:{},   // ch -> 따라쓰기에서 현재 연습 중인 절 번호 (한 절씩 보기)
   editMode:false,// 본문 교정 모드 on/off (비저장, 새로고침 시 꺼짐)
   _editing:null  // 현재 편집 중인 "ch:v" (비저장)
 };
@@ -237,11 +247,12 @@ for(const ch of CHAPTERS){ ORIGINAL[ch] = BIBLE[ch].slice(); }
   state.editMode = false; state._editing = null; // 편집 상태는 항상 초기화
   if(!state.corrections || typeof state.corrections!=="object") state.corrections = {};
   if(!state.memos || typeof state.memos!=="object") state.memos = {};
+  if(!state.copyPos || typeof state.copyPos!=="object") state.copyPos = {};
   applyCorrections(); // 저장된 교정 본문을 BIBLE에 반영
 })();
 function save(){
-  const {tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections,memos} = state;
-  store.set("rev_app_v1", JSON.stringify({tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections,memos}));
+  const {tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections,memos,copyPos} = state;
+  store.set("rev_app_v1", JSON.stringify({tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections,memos,copyPos}));
 }
 // 저장된 교정 본문을 BIBLE에 적용
 function applyCorrections(){
@@ -431,6 +442,7 @@ function taKey(e,ch,v){
   const atEnd = nT.length>=nC.length || (nT.length>=nC.length*0.8 && nT.slice(-lastWord.length)===lastWord);
   if(!atEnd) return; // 아직 구절 중간이면 그냥 줄바꿈
   e.preventDefault();
+  if(state.mode==="copy"){ checkCopyOne(ch,v); return; } // 한 절씩 보기: 채점 후 자동 다음 절
   checkOne(ch,v);
   const nx = document.getElementById("ta-"+ch+"-"+(v+1));
   if(nx) focusCenter(nx);
@@ -440,6 +452,40 @@ function focusCenter(el){
   if(!el) return;
   el.focus({preventScroll:true});
   requestAnimationFrame(()=>{ el.scrollIntoView({behavior:"smooth", block:"center"}); });
+}
+
+/* ===== 따라쓰기: 한 절씩 보기 ===== */
+// 현재 연습 중인 절 번호 반환 (없거나 범위 밖이면 아직 못 맞힌 첫 절 선택)
+function copyCurrent(ch, order){
+  let v = state.copyPos[ch];
+  if(order.indexOf(v)===-1){
+    v = order.find(x => !((state.records[key(ch,x,"copy")]||{}).ok));
+    if(v===undefined) v = order[0];
+    state.copyPos[ch] = v;
+  }
+  return v;
+}
+// 특정 절로 이동 (박스 갱신 + 중앙 스크롤)
+function copyGo(ch, v){
+  state.copyPos[ch] = v;
+  save(); render();
+  const ta = document.getElementById("ta-"+ch+"-"+v);
+  if(ta) focusCenter(ta);
+}
+// 따라쓰기 채점: 맞으면 다음 절로 자동 이동, 틀리면 그 자리에서 결과 표시
+function checkCopyOne(ch, v){
+  const ta = document.getElementById("ta-"+ch+"-"+v);
+  if(!ta) return;
+  const ok = gradeVerse(ch, v, ta.value);
+  if(ok){
+    const order = verseOrder(ch);
+    const idx = order.indexOf(v);
+    const nextV = (idx>=0 && idx<order.length-1) ? order[idx+1] : null;
+    if(nextV){ copyGo(ch, nextV); return; }
+  }
+  render();
+  const cur = document.getElementById("ta-"+ch+"-"+v);
+  if(cur) focusCenter(cur);
 }
 function blankKey(e,ch,v){
   if(e.key!=="Enter") return;
@@ -544,6 +590,49 @@ function renderQuiz(){
   }
 
   const noSection = state.opts.shuffle || state.opts.reverse;
+
+  // ★ 따라쓰기: 한 절씩만 표시 (맞히면 다음 절로 박스 갱신)
+  if(state.mode==="copy" && !state.editMode){
+    const v = copyCurrent(ch, order);
+    const idx = order.indexOf(v), total = order.length;
+    const doneCount = order.filter(x => (state.records[key(ch,x,"copy")]||{}).ok).length;
+    const allDone = doneCount===total;
+    const correct = BIBLE[ch][v-1];
+    const k = key(ch,v,"copy");
+    const rec = state.records[k], draft = state.drafts[k]||"";
+    const corrected = !!state.corrections[ch+":"+v];
+    const memo = state.memos[ch+":"+v]||"";
+
+    html += '<div class="copyprog">현재 '+(idx+1)+' / '+total+'절 · 완료 '+doneCount+'절'+(allDone?' 🎉':'')+'</div>';
+    if(allDone) html += '<div class="copydone">이 장 따라쓰기를 모두 마쳤어요! 다른 장으로 이동하거나 아래에서 다시 연습하세요.</div>';
+    if(!noSection){ const sec=sectionOf(ch,v); if(sec) html += '<div class="section">'+esc(sec)+'</div>'; }
+
+    html += '<div class="vrow"><div class="vnum">'+ch+':'+v+(corrected?' <span class="corrbadge">교정됨</span>':'')+'</div>'+
+      '<input class="memo'+(memo?' has':'')+'" type="text" data-mk="'+ch+'-'+v+'" value="'+esc(memo)+'" placeholder="메모" aria-label="계 '+ch+':'+v+' 메모" oninput="saveMemo('+ch+','+v+',this.value)"></div>';
+    html += '<div class="vtext">'+esc(correct)+'</div>';
+    html += '<textarea class="ans" id="ta-'+ch+'-'+v+'" placeholder="위 성구를 따라 쓰세요..." oninput="saveDraft('+ch+','+v+')" onkeydown="taKey(event,'+ch+','+v+')">'+esc(draft)+'</textarea>';
+    html += '<div class="result" id="res-'+ch+'-'+v+'" style="display:'+(rec?'block':'none')+'"></div>';
+    html += '<div class="copybtns"><button class="checkbtn" onclick="checkCopyOne('+ch+','+v+')">확인</button>'+
+      '<button class="retrybtn" onclick="resetVerse('+ch+','+v+')">↺ 다시</button></div>';
+
+    const prevV = idx>0 ? order[idx-1] : null;
+    const nextV = idx<total-1 ? order[idx+1] : null;
+    html += '<div class="copynav">'+
+      '<button class="navbtn"'+(prevV?' onclick="copyGo('+ch+','+prevV+')"':' disabled')+'>← 이전 절</button>'+
+      '<button class="navbtn"'+(nextV?' onclick="copyGo('+ch+','+nextV+')"':' disabled')+'>다음 절 →</button></div>';
+
+    html += '</div>'; // .chapcard
+    document.getElementById("content").innerHTML = html;
+
+    const res = document.getElementById("res-"+ch+"-"+v);
+    if(rec && res){
+      res.className = "result "+(rec.ok?"ok":"bad");
+      if(rec.ok) res.innerHTML = "✓ 정답입니다!";
+      else res.innerHTML = '<span class="tag">✗ 아쉬워요, 다시 확인해 보세요.</span>'+
+        '<div class="lbl">정답 (틀린 부분 강조)</div><div class="cmp">'+diffMark(correct, draft)+'</div>';
+    }
+    return;
+  }
 
   order.forEach(v=>{
     if(!noSection){
