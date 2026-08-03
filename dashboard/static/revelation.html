@@ -60,6 +60,25 @@
   .navbtn{flex:1; background:#fff; border:1px solid var(--line); border-radius:99px; padding:11px 16px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--ink); transition:background .15s, border-color .15s, color .15s;}
   .navbtn:hover:not(:disabled){background:var(--green-soft); border-color:var(--green-line); color:var(--green-dark);}
   .navbtn:disabled{opacity:.4; cursor:default;}
+  /* 소제목(구절별) 편집 */
+  .section.editable{cursor:pointer; display:flex; align-items:center; gap:8px; transition:background .15s, border-color .15s, box-shadow .15s;}
+  .section.editable:hover{background:#e9efe7; box-shadow:0 1px 6px rgba(45,106,79,.14);}
+  .section .sub-ic{font-size:12.5px; color:var(--green); opacity:.55; font-weight:400;}
+  .section.editable:hover .sub-ic{opacity:1;}
+  .subadd{margin:24px 0 6px;}
+  .subaddbtn{background:transparent; border:1px dashed var(--green-line); color:var(--green); border-radius:99px; padding:5px 13px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:background .15s, border-color .15s, color .15s;}
+  .subaddbtn:hover{background:var(--green-soft); border-color:var(--green); border-style:solid;}
+  .subedit{margin:24px 0 8px; background:var(--green-soft); border:1px solid var(--green-line); border-left:4px solid var(--green); border-radius:8px; padding:12px 14px; transform-origin:top center; animation:subExpand .2s cubic-bezier(.2,.8,.25,1);}
+  @keyframes subExpand{ from{opacity:0; transform:translateY(-8px) scaleY(.85);} to{opacity:1; transform:none;} }
+  .subinput{width:100%; border:1px solid var(--green-line); background:#fff; border-radius:7px; padding:9px 12px; font-size:15px; font-weight:700; font-family:inherit; color:var(--ink);}
+  .subinput:focus{outline:none; border-color:var(--green); box-shadow:0 0 0 2px rgba(45,106,79,.15);}
+  .subbtns{display:flex; gap:8px; margin-top:10px;}
+  .subsave{background:var(--green); color:#fff; border:none; border-radius:99px; padding:8px 20px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;}
+  .subsave:hover{background:var(--green-dark);}
+  .subcancel{background:#fff; border:1px solid var(--line); color:var(--sub); border-radius:99px; padding:8px 16px; font-size:14px; cursor:pointer; font-family:inherit;}
+  .subcancel:hover{background:#f6f2e9;}
+  .subdel{background:var(--orange-bg); border:1px solid var(--orange-line); color:var(--orange); border-radius:99px; padding:8px 16px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; margin-left:auto;}
+  .subdel:hover{background:#fbe4db;}
   .vtext{background:var(--green-soft); border:1px solid var(--green-line); border-radius:10px; padding:14px 16px; font-size:16.5px; line-height:1.85; word-break:keep-all; white-space:pre-wrap;}
   .vtext.blurred{filter:blur(6px); cursor:pointer;}
   .vtext.reveal-hint{cursor:pointer;}
@@ -232,8 +251,10 @@ let state = {
   corrections:{},// "ch:v" -> 사용자가 교정한 본문 (localStorage 저장)
   memos:{},     // "ch:v" -> 구절 옆 간단 메모 (localStorage 저장)
   copyPos:{},   // ch -> 따라쓰기에서 현재 연습 중인 절 번호 (한 절씩 보기)
+  subtitles:{}, // "ch:v" -> 사용자가 지정/수정한 소제목 (localStorage 저장)
   editMode:false,// 본문 교정 모드 on/off (비저장, 새로고침 시 꺼짐)
-  _editing:null  // 현재 편집 중인 "ch:v" (비저장)
+  _editing:null, // 현재 편집 중인 "ch:v" (비저장)
+  _editingSub:null // 현재 편집 중인 소제목 "ch:v" (비저장)
 };
 
 // 원문 스냅샷 (교정 전 원래 본문) — '원문 복원'에 사용
@@ -244,15 +265,16 @@ for(const ch of CHAPTERS){ ORIGINAL[ch] = BIBLE[ch].slice(); }
   const saved = store.get("rev_app_v1");
   if(saved){ try{ const s=JSON.parse(saved); Object.assign(state,s); state.orders={}; }catch(e){} }
   state.tab = "quiz";
-  state.editMode = false; state._editing = null; // 편집 상태는 항상 초기화
+  state.editMode = false; state._editing = null; state._editingSub = null; // 편집 상태는 항상 초기화
   if(!state.corrections || typeof state.corrections!=="object") state.corrections = {};
   if(!state.memos || typeof state.memos!=="object") state.memos = {};
   if(!state.copyPos || typeof state.copyPos!=="object") state.copyPos = {};
+  if(!state.subtitles || typeof state.subtitles!=="object") state.subtitles = {};
   applyCorrections(); // 저장된 교정 본문을 BIBLE에 반영
 })();
 function save(){
-  const {tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections,memos,copyPos} = state;
-  store.set("rev_app_v1", JSON.stringify({tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections,memos,copyPos}));
+  const {tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections,memos,copyPos,subtitles} = state;
+  store.set("rev_app_v1", JSON.stringify({tab,mode,ch,opts,records,wrongs,drafts,quarter,corrections,memos,copyPos,subtitles}));
 }
 // 저장된 교정 본문을 BIBLE에 적용
 function applyCorrections(){
@@ -487,6 +509,55 @@ function checkCopyOne(ch, v){
   const cur = document.getElementById("ta-"+ch+"-"+v);
   if(cur) focusCenter(cur);
 }
+
+/* ===== 소제목(구절별) 편집 ===== */
+// 절 위에 표시할 소제목 영역 HTML: 소제목이 있으면 표시(클릭해 수정), 없으면 추가 버튼
+function subtitleHTML(ch, v, noSection){
+  const kk = ch+":"+v;
+  const userSub = state.subtitles[kk];
+  const predef = noSection ? null : sectionOf(ch,v); // 예: "[1~10절] 바다에서 나온 짐승"
+  const editing = state._editingSub === kk;
+  const shown = (userSub!==undefined) ? userSub : predef;
+
+  if(editing){
+    const val = (userSub!==undefined) ? userSub : (predef||"");
+    return '<div class="subedit">'+
+      '<input class="subinput" id="sub-'+ch+'-'+v+'" value="'+esc(val)+'" placeholder="소제목을 입력하세요" '+
+        'onkeydown="if(event.key===\'Enter\'){event.preventDefault();saveSub('+ch+','+v+');}">'+
+      '<div class="subbtns">'+
+        '<button class="subsave" onclick="saveSub('+ch+','+v+')">저장</button>'+
+        '<button class="subcancel" onclick="cancelSub()">취소</button>'+
+        (userSub!==undefined?'<button class="subdel" onclick="removeSub('+ch+','+v+')">삭제</button>':'')+
+      '</div></div>';
+  }
+  if(shown){
+    return '<div class="section editable" onclick="startSub('+ch+','+v+')" title="소제목 수정">'+
+      esc(shown)+'<span class="sub-ic">✎</span></div>';
+  }
+  return '<div class="subadd"><button class="subaddbtn" onclick="startSub('+ch+','+v+')">＋ 소제목</button></div>';
+}
+function startSub(ch,v){
+  state._editingSub = ch+":"+v;
+  render();
+  const el = document.getElementById("sub-"+ch+"-"+v);
+  if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+}
+function cancelSub(){ state._editingSub = null; render(); }
+function saveSub(ch,v){
+  const el = document.getElementById("sub-"+ch+"-"+v);
+  if(!el) return;
+  const val = el.value.trim();
+  const kk = ch+":"+v;
+  if(val==="") delete state.subtitles[kk]; // 비우면 사용자 소제목 제거(예정 섹션이 있으면 다시 표시)
+  else state.subtitles[kk] = val;
+  state._editingSub = null;
+  save(); render();
+}
+function removeSub(ch,v){
+  delete state.subtitles[ch+":"+v];
+  state._editingSub = null;
+  save(); render();
+}
 function blankKey(e,ch,v){
   if(e.key!=="Enter") return;
   if(e.isComposing || e.keyCode===229) return;
@@ -605,7 +676,7 @@ function renderQuiz(){
 
     html += '<div class="copyprog">현재 '+(idx+1)+' / '+total+'절 · 완료 '+doneCount+'절'+(allDone?' 🎉':'')+'</div>';
     if(allDone) html += '<div class="copydone">이 장 따라쓰기를 모두 마쳤어요! 다른 장으로 이동하거나 아래에서 다시 연습하세요.</div>';
-    if(!noSection){ const sec=sectionOf(ch,v); if(sec) html += '<div class="section">'+esc(sec)+'</div>'; }
+    html += subtitleHTML(ch, v, noSection);
 
     html += '<div class="vrow"><div class="vnum">'+ch+':'+v+(corrected?' <span class="corrbadge">교정됨</span>':'')+'</div>'+
       '<input class="memo'+(memo?' has':'')+'" type="text" data-mk="'+ch+'-'+v+'" value="'+esc(memo)+'" placeholder="메모" aria-label="계 '+ch+':'+v+' 메모" oninput="saveMemo('+ch+','+v+',this.value)"></div>';
@@ -635,9 +706,10 @@ function renderQuiz(){
   }
 
   order.forEach(v=>{
-    if(!noSection){
-      const sec = sectionOf(ch,v);
-      if(sec) html += '<div class="section">'+esc(sec)+'</div>';
+    if(state.editMode){
+      if(!noSection){ const sec = sectionOf(ch,v); if(sec) html += '<div class="section">'+esc(sec)+'</div>'; }
+    } else {
+      html += subtitleHTML(ch, v, noSection);
     }
     const correct = BIBLE[ch][v-1];
     const k = key(ch,v,state.mode);
