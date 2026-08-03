@@ -469,12 +469,11 @@ function focusCenter(el){
 function subtitleHTML(ch, v, noSection){
   const kk = ch+":"+v;
   const userSub = state.subtitles[kk];
-  const predef = noSection ? null : sectionOf(ch,v); // 예: "[1~10절] 바다에서 나온 짐승"
   const editing = state._editingSub === kk;
-  const shown = (userSub!==undefined) ? userSub : predef;
+  const shown = userSub; // 기본(예정) 소제목은 표시하지 않고, 사용자가 추가한 것만 표시
 
   if(editing){
-    const val = (userSub!==undefined) ? userSub : (predef||"");
+    const val = (userSub!==undefined) ? userSub : "";
     return '<div class="subedit">'+
       '<input class="subinput" id="sub-'+ch+'-'+v+'" value="'+esc(val)+'" placeholder="소제목을 입력하세요" '+
         'onkeydown="if(event.key===\'Enter\'){event.preventDefault();saveSub('+ch+','+v+');}">'+
@@ -618,7 +617,8 @@ function renderQuiz(){
 
   order.forEach(v=>{
     if(state.editMode){
-      if(!noSection){ const sec = sectionOf(ch,v); if(sec) html += '<div class="section">'+esc(sec)+'</div>'; }
+      const us = state.subtitles[ch+":"+v];
+      if(us) html += '<div class="section">'+esc(us)+'</div>'; // 사용자 소제목만 읽기 전용 표시
     } else {
       html += subtitleHTML(ch, v, noSection);
     }
