@@ -259,6 +259,12 @@ for(const ch of CHAPTERS){ ORIGINAL[ch] = BIBLE[ch].slice(); }
   if(!state.corrections || typeof state.corrections!=="object") state.corrections = {};
   if(!state.memos || typeof state.memos!=="object") state.memos = {};
   if(!state.subtitles || typeof state.subtitles!=="object") state.subtitles = {};
+  // (정리) 예전 버전에서 기본 소제목이 사용자 소제목으로 저장돼 남아 있으면 제거
+  const _predefLabels = new Set();
+  for(const c in SECTIONS){ for(const seg of SECTIONS[c]){ _predefLabels.add("["+seg[0]+"~"+seg[1]+"절] "+seg[2]); } }
+  let _cleaned = false;
+  for(const k in state.subtitles){ if(_predefLabels.has(state.subtitles[k])){ delete state.subtitles[k]; _cleaned = true; } }
+  if(_cleaned) save();
   applyCorrections(); // 저장된 교정 본문을 BIBLE에 반영
 })();
 function save(){
