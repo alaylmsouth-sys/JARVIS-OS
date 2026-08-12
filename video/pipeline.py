@@ -21,6 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from brain.bootstrap import ensure_memory  # noqa: E402
 from router.router import route, load_table  # noqa: E402
 from video import videogen, voice, editor, thumbnail, quality  # noqa: E402
 
@@ -52,6 +53,8 @@ def _parse_scenes(text: str) -> dict:
 
 
 def run(topic: str, dry_run: bool = False) -> dict:
+    # CLI와 자동화에서 대시보드를 거치지 않아도 안전하게 초기 설정을 준비한다.
+    ensure_memory()
     job_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     job_dir = OUTPUT / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
@@ -78,11 +81,16 @@ def run(topic: str, dry_run: bool = False) -> dict:
 
     # 3) 장면별 영상 생성
     vconf = table["media"]["video"]
+    # dry-run은 구성값과 관계없이 네트워크·유료 생성 서비스를 호출하지 않는다.
+    if dry_run:
+        vconf = {**vconf, "provider": "placeholder"}
     log(f"3/7 영상 생성 ({vconf['provider']})…")
     clips = videogen.generate_clips(scenes["scenes"], vconf, job_dir)
 
     # 4) 음성 생성
     aconf = table["media"]["voice"]
+    if dry_run:
+        aconf = {**aconf, "provider": "silent"}
     log(f"4/7 음성 생성 ({aconf['provider']})…")
     narration = " ".join([scenes["hook"]] +
                          [s["narration"] for s in scenes["scenes"]] +
